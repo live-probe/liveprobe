@@ -13,13 +13,15 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shlex
+import shutil
 import subprocess
+import tempfile
 import time
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 MAX_FILE, MAX_TOTAL = 64 * 1024, 400 * 1024
-EXCLUDED = {'.git', 'node_modules', 'target', 'dist', '.venv', '__pycache__', '.liveprobe-runner'}
+EXCLUDED = {'.git', 'node_modules', 'dist', '.venv', '__pycache__', '.liveprobe-runner'}
 EXTENSIONS = {'.py', '.js', '.mjs', '.ts', '.tsx', '.java', '.xml', '.json', '.gradle', '.properties', '.md'}
 
 
@@ -32,6 +34,25 @@ def safe_path(path):
 def tail(text):
     value = re.sub(r'(?i)(bearer\s+|(?:token|password|secret|api_key)\s*[:=]\s*)\S+', r'\1[REDACTED]', str(text))
     return value.encode()[-8192:].decode(errors='replace')
+
+
+def source_files(base):
+    """Prune before descending: never follow links or copy credentials/build outputs."""
+    def sensitive(name):
+        lower = name.lower()
+        return (name.startswith('.') or any(s in lower for s in
+                ('secret', 'credential', 'token', 'auth', '.env', '.pem', '.key'))
+                or lower in ('env', 'hosts.yml', 'settings.xml', 'id_rsa', 'id_ed25519'))
+    for directory, dirs, files in os.walk(base, followlinks=False):
+        root = Path(directory)
+        # Maven outputs belong only to the service root or a real module root.
+        maven_root = root == base or (root / 'pom.xml').is_file()
+        dirs[:] = sorted(d for d in dirs if d not in EXCLUDED and not sensitive(d)
+                         and not (maven_root and d == 'target') and not (root / d).is_symlink())
+        for name in sorted(files):
+            file = root / name
+            if not sensitive(name) and not file.is_symlink() and file.is_file():
+                yield file
 
 
 class RunnerFailure(RuntimeError):
@@ -93,10 +114,7 @@ class Runner:
         self.run(['git', 'checkout', '--detach', sha], work)
         base = work / subdir
         paths = payload.get('paths') or []
-        candidates = sorted(p for p in base.rglob('*') if p.is_file() and not p.is_symlink()
-                            and not EXCLUDED.intersection(p.relative_to(base).parts)
-                            and (p.suffix in EXTENSIONS or p.name == 'Dockerfile')
-                            and not p.name.startswith('.') and not any(s in p.name.lower() for s in ('secret', 'credential', 'auth.json')))
+        candidates = sorted(p for p in source_files(base) if p.suffix in EXTENSIONS or p.name == 'Dockerfile')
         if paths:
             candidates = [p for p in candidates if any(str(p.relative_to(base)) == path or str(p.relative_to(base)).endswith('/' + path) for path in paths if safe_path(path))]
         files = {}; total = 0
@@ -129,23 +147,61 @@ class Runner:
                 Runner.contained(base, subdir, value[2:])
 
     def tests_and_image(self, cfg, work, subdir, image):
-        context = (work / subdir).resolve()
-        variables = {'image': image, 'dir': str(context)}
+        context = self.contained(work, '.', subdir) if subdir != '.' else work.resolve()
+        test_image = cfg.get('test_image')
+        if not isinstance(test_image, str) or not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._:/-]*@sha256:[a-f0-9]{64}', test_image):
+            raise ValueError('pinned_test_image_required')
+        if cfg.get('test_report'): raise ValueError('sandbox_custom_test_report_unsupported')
         test_cmd = cfg.get('test_cmd', '')
-        try: test_log = self.run(shlex.split(test_cmd.format(**variables)), context) if test_cmd else ''
-        except Exception: raise RunnerFailure('tests') from None
-        build_cmd = cfg.get('build_cmd', '')
-        if not build_cmd: raise ValueError('build_command_required')
-        # Run tests before building and definitely before publishing a branch or PR.
-        try: build_log = self.run(shlex.split(build_cmd.format(**variables)), context)
-        except Exception: raise RunnerFailure('build') from None
+        if not test_cmd: raise ValueError('sandbox_test_command_required')
+        # Only argv is interpreted, never a host shell. {dir} is the disposable workspace.
+        argv = shlex.split(test_cmd.format(image=image, dir='/workspace'))
+        if not argv: raise ValueError('sandbox_test_command_required')
+        build = shlex.split(cfg.get('build_cmd', '').format(image=image, dir='CONTEXT'))
+        if build[:2] != ['docker', 'build']: raise ValueError('docker_build_only')
+        dockerfile = 'Dockerfile'; tagged = False; i = 2
+        while i < len(build) - 1:
+            arg = build[i]
+            if arg in ('--pull=false', '--network=none'): i += 1; continue
+            if arg in ('-t', '--tag') and i + 1 < len(build) - 1 and build[i + 1] == image and not tagged:
+                tagged = True; i += 2; continue
+            if arg in ('-f', '--file') and i + 1 < len(build) - 1 and safe_path(build[i + 1]):
+                dockerfile = build[i + 1]; i += 2; continue
+            raise ValueError('unsafe_build_command')
+        if not tagged or build[-1] not in ('CONTEXT', '.'):
+            raise ValueError('staged_build_context_required')
+        with tempfile.TemporaryDirectory(prefix='p18-source-') as directory:
+            stage = Path(directory) / 'source'; stage.mkdir(mode=0o755)
+            for file in source_files(context):
+                relative = str(file.relative_to(context)); self.contained(work, subdir, relative)
+                target = stage / relative; target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(file, target); target.chmod(0o644)
+            # Docker must traverse the temporary parent as a non-root bind-mount user.
+            Path(directory).chmod(0o755)
+            recipe = stage / dockerfile
+            if not recipe.is_file(): raise ValueError('staged_dockerfile_required')
+            body = recipe.read_text()
+            if re.search(r'(?im)^\s*(?:#\s*syntax\s*=|ADD\s|RUN\s+--mount)', body):
+                raise ValueError('unsafe_dockerfile_external_input')
+            command = ['docker', 'run', '--rm', '--pull=never', '--user', '10001:10001',
+                       '--network=none', '--read-only', '--cap-drop=ALL',
+                       '--security-opt=no-new-privileges', '--pids-limit=128', '--memory=512m', '--cpus=1',
+                       '--tmpfs', '/tmp:rw,nosuid,nodev,size=64m,mode=1777',
+                       '--tmpfs', '/workspace:rw,nosuid,nodev,size=256m,mode=1777',
+                       '--tmpfs', '/home/sandbox:rw,nosuid,nodev,size=32m,mode=1777',
+                       '--mount', f'type=bind,src={stage},target=/source,readonly',
+                       '--workdir', '/workspace', '--entrypoint', '/bin/sh',
+                       test_image, '-c',
+                       'cp -R /source/. /workspace/ && exec env -i HOME=/home/sandbox TMPDIR=/tmp '
+                       'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin LANG=C.UTF-8 "$@"',
+                       'sandbox', *argv]
+            try: test_log = self.run(command, stage)
+            except Exception: raise RunnerFailure('tests') from None
+            try: build_log = self.run(['docker', 'build', '--network=none', '--pull=false',
+                                       '-f', dockerfile, '-t', image, '.'], stage)
+            except Exception: raise RunnerFailure('build') from None
         log = test_log + '\n' + build_log
-        report = cfg.get('test_report')
-        if report:
-            file = self.contained(work, subdir, report)
-            if file.stat().st_size > 64 * 1024: raise ValueError('test_report_too_large')
-            tests = json.loads(file.read_text())
-        else:
+        if True:  # Parse only sandbox stdout; custom reports cannot escape to host files.
             unittest = re.search(r'Ran (\d+) tests?', log)
             passed = re.search(r'(\d+) passed', log)
             failed = re.search(r'(\d+) failed', log)
@@ -230,6 +286,12 @@ class Runner:
                     if tree != built.get('source_tree'): return out
                     artifact = self.tests_and_image(cfg, work, subdir, f"{cfg['image_repo']}:cr-{change['id']}-merged-{sha[:12]}")
                     self.merge_cache[key] = {'commit': sha, **artifact}
+                # Rebuild/cache lookup may take time: never upload a stale-main receipt.
+                self.run(['git', 'fetch', '--no-tags', 'origin', 'main'], work)
+                final_main = self.run(['git', 'rev-parse', 'origin/main'], work).strip()
+                if final_main != sha:
+                    out['main_sha'] = final_main
+                    return out
                 out.update(merge_sha=sha, review_completed=True, merge_build=self.merge_cache[key])
         return out
 

@@ -20,17 +20,22 @@ from .models import AgentRun, Evidence, Incident, Setting, utcnow
 from .redact import redact
 
 STAGES = ('dev', 'stg', 'prd')
+# Status a stage starts from; a stage refused before any write returns here.
+STAGE_ENTRY = {'dev': 'built', 'stg': 'dev_verified', 'prd': 'stg_verified'}
+REVIEW_RECEIPT_MAX_AGE_SECONDS = 30
+BLOCKED_KO = {'github_merge_required': 'GitHub 병합 확인이 만료되어 실행 전에 중단했습니다. 병합 상태를 다시 확인한 뒤 승격하세요.',
+              'stale_plan': '승인 뒤 대상 Deployment가 바뀌어 실행 전에 중단했습니다. 계획을 다시 확인하세요.'}
 TRANSITIONS = {
     'awaiting_source': {'patching', 'patch_failed', 'cancelled'},
     'patching': {'awaiting_build', 'patch_failed', 'cancelled'},
     'awaiting_build': {'building', 'build_failed', 'cancelled'},
     'building': {'built', 'tests_failed', 'build_failed'},
     'built': {'dev_deploying', 'cancelled'},
-    'dev_deploying': {'dev_verified', 'dev_failed'},
+    'dev_deploying': {'dev_verified', 'dev_failed', 'built'},
     'dev_verified': {'stg_deploying', 'cancelled'},
-    'stg_deploying': {'stg_verified', 'stg_failed'},
+    'stg_deploying': {'stg_verified', 'stg_failed', 'dev_verified'},
     'stg_verified': {'prd_deploying', 'cancelled'},
-    'prd_deploying': {'prd_verified', 'prd_failed'},
+    'prd_deploying': {'prd_verified', 'prd_failed', 'stg_verified'},
     'patch_failed': {'cancelled'}, 'tests_failed': {'cancelled'}, 'build_failed': {'cancelled'},
     'dev_failed': {'cancelled'}, 'stg_failed': {'cancelled'}, 'prd_failed': {'cancelled'}, 'error': {'cancelled'},
 }
@@ -42,6 +47,20 @@ PATCH_SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
 
 class ChangeError(CommandError):
     pass
+
+
+class NotWritten(ChangeError):
+    """Refused before the release transport was called; the cluster is known to be unchanged."""
+
+
+def receipt_fresh(build):
+    try:
+        from datetime import datetime
+        age = (utcnow() - datetime.fromisoformat(build['review_checked_at'])).total_seconds()
+    except (ValueError, KeyError, TypeError):
+        return False
+    # A receipt from the future is as untrustworthy as an expired one.
+    return 0 <= age < REVIEW_RECEIPT_MAX_AGE_SECONDS
 
 
 def transition(row, status):
@@ -347,19 +366,14 @@ class ChangeService:
     def _release_image(row, stage):
         if stage != 'prd': return row.build.get('image')
         b = row.build; merged = b.get('merge_build') or {}
-        try:
-            from datetime import datetime
-            fresh = (utcnow() - datetime.fromisoformat(b['review_checked_at'])).total_seconds() < 30
-        except (ValueError, KeyError, TypeError): fresh = False
-        if not (fresh and b.get('pr_state') == 'MERGED' and b.get('review_completed') is True
+        if not (receipt_fresh(b) and b.get('pr_state') == 'MERGED' and b.get('review_completed') is True
                 and b.get('merge_sha') == b.get('main_sha') == merged.get('commit') and b.get('merge_sha')):
             raise ChangeError('github_merge_required')
         return merged.get('image')
 
     def _target(self, row, stage):
         if stage not in STAGES or stage not in getattr(self.cfg, 'target_namespaces', []): raise ChangeError('invalid_release_namespace', 422)
-        expected = {'dev': 'built', 'stg': 'dev_verified', 'prd': 'stg_verified'}[stage]
-        if row.status != expected: raise ChangeError('promotion_order_conflict')
+        if row.status != STAGE_ENTRY[stage]: raise ChangeError('promotion_order_conflict')
         d = self.kube.get_deployment(stage, row.service)
         if not d: raise ChangeError('deployment_not_found', 404)
         md = d.get('metadata', {}); labels = md.get('labels', {})
@@ -395,7 +409,7 @@ class ChangeService:
                 entry = row.stages.get(stage, {}); plan = entry.get('plan', {})
                 if not isinstance(plan_sha256, str) or not hmac.compare_digest(plan.get('plan_sha256', ''), plan_sha256): raise ChangeError('plan_hash_mismatch')
                 if previous != plan.get('previous_image') or d['metadata']['uid'] != entry.get('uid') or self._release_image(row, stage) != plan.get('new_image'): raise ChangeError('stale_plan')
-                transition(row, stage + '_deploying')
+                transition(row, stage + '_deploying'); row.error = None
                 row.stages = {**row.stages, stage: {**entry, 'status': 'claimed', 'previous_image': previous,
                     'new_image': plan['new_image'], 'started_at': utcnow().isoformat(), 'finished_at': None,
                     'verification': {}, 'reverted': False}}
@@ -420,20 +434,30 @@ class ChangeService:
             service, system, iid = row.service, row.system, row.incident_id
             repro = _remediation(s, iid).get('repro')
         verification, reverted, rollback = {}, False, {}
+        uid = entry['uid']
         try:
-            self._write(stage, service, system, entry['uid'], entry['previous_image'], entry['new_image'])
-            verification = self.verify(stage, service, entry['new_image'], repro)
-            ok = verification['ok']
-            error = None if ok else '단계 검증 실패'
+            # The approval may be old by now: re-prove the merge receipt immediately before the transport call.
+            self._write(stage, service, system, uid, entry['previous_image'], entry['new_image'],
+                        guard=lambda: self._assert_releasable(cid, stage, entry['new_image']))
+        except NotWritten as exc:
+            return self._finish_blocked(cid, stage, entry, exc.code)
         except Exception:
             ok, error = False, '승격 실행 또는 검증 실패'
+        else:
+            try:
+                verification = self.verify(stage, service, entry['new_image'], repro, expected_uid=uid)
+                ok = verification['ok']
+                error = None if ok else '단계 검증 실패'
+            except Exception:
+                ok, error = False, '승격 실행 또는 검증 실패'
         if not ok:
             try:
-                self._write(stage, service, system, entry['uid'], entry['new_image'], entry['previous_image'])
-                rollback = self._rollout_health(stage, service, entry['previous_image'])
+                # _write refuses a replaced Deployment (different UID), so a rollback never lands on another object.
+                self._write(stage, service, system, uid, entry['new_image'], entry['previous_image'])
+                rollback = self._rollout_health(stage, service, entry['previous_image'], uid)
                 reverted = rollback['ok']
             except Exception:
-                rollback = {'ok': False, 'error': '원복 상태를 확정하지 못했습니다. 사람이 확인해야 합니다.'}
+                rollback = {'ok': False, 'status': '미확정', 'error': '원복 상태를 확정하지 못했습니다. 사람이 확인해야 합니다.'}
         with db.session() as s:
             row = self._row(s, cid)
             # Recovery may have invalidated this worker; never turn an interrupted stage into success.
@@ -447,28 +471,76 @@ class ChangeService:
             if reverted: self._audit(s, row, 'stage_reverted', stage=stage)
             s.flush(); return _serial(row)
 
-    def _write(self, stage, service, system, uid, before, after):
+    def _assert_releasable(self, cid, stage, image):
+        with db.session() as s:
+            row = self._row(s, cid)
+            if row.status != stage + '_deploying' or (row.stages.get(stage) or {}).get('status') != 'executing':
+                raise NotWritten('stage_not_executable')
+            try: current = self._release_image(row, stage)
+            except ChangeError as exc: raise NotWritten(exc.code) from None
+            if current != image: raise NotWritten('stale_plan')
+
+    def _finish_blocked(self, cid, stage, entry, code):
+        """Nothing reached the cluster: return to the previous verified stage instead of claiming a failure to roll back."""
+        with db.session() as s:
+            row = self._row(s, cid)
+            if row.status != stage + '_deploying': return _serial(row)
+            transition(row, STAGE_ENTRY[stage])
+            row.error = BLOCKED_KO.get(code, '실행 전에 중단했습니다. 대상과 계획을 다시 확인하세요.')
+            row.stages = {**row.stages, stage: {**entry, 'status': 'blocked', 'finished_at': utcnow().isoformat(),
+                'verification': {}, 'reverted': False, 'rollback': {'status': '미수행'}, 'error': row.error, 'blocked_reason': code}}
+            self._audit(s, row, 'stage_blocked', stage=stage, reason=code)
+            s.flush(); return _serial(row)
+
+    def _write(self, stage, service, system, uid, before, after, guard=None):
         d = self.kube.get_deployment(stage, service); md = (d or {}).get('metadata', {})
         labels = md.get('labels', {})
         if md.get('uid') != uid or labels.get('liveprobe.io/managed') != 'true' or labels.get('app.kubernetes.io/part-of') != system:
-            raise ChangeError('stale_plan')
+            raise NotWritten('stale_plan')
         containers = d['spec']['template']['spec']['containers']
-        if next((c.get('image') for c in containers if c.get('name') == service), None) != before: raise ChangeError('stale_plan')
+        if next((c.get('image') for c in containers if c.get('name') == service), None) != before: raise NotWritten('stale_plan')
+        if guard is not None: guard()
         self.release.patch_image(stage, service, before, after, md['resourceVersion'])
 
-    def _rollout_health(self, ns, service, image):
+    @staticmethod
+    def _controlled_by(obj, kind, uids):
+        return any(r.get('kind') == kind and r.get('controller') is True and r.get('uid') in uids
+                   for r in obj.get('metadata', {}).get('ownerReferences') or [])
+
+    @staticmethod
+    def _image_of(spec, service):
+        return next((c.get('image') for c in spec.get('containers', []) if c.get('name') == service), None)
+
+    def _rollout_snapshot(self, ns, service, image, uid):
+        """(rolled_out, healthy) for the approved Deployment UID only; replaced objects and unrelated pods never count."""
+        d = self.kube.get_deployment(ns, service) or {}; md, spec, status = d.get('metadata', {}), d.get('spec', {}), d.get('status', {})
+        if not uid or md.get('uid') != uid: return False, False
+        desired = spec.get('replicas', 1)
+        rollout = (desired > 0 and self._image_of(spec.get('template', {}).get('spec', {}), service) == image
+                   and status.get('observedGeneration', 0) >= md.get('generation', 1)
+                   and status.get('updatedReplicas', 0) == desired and status.get('availableReplicas', 0) >= desired
+                   and status.get('replicas', 0) == desired)
+        if not rollout: return False, False
+        sets = {r['metadata']['uid'] for r in self.kube.list_replicasets(ns)
+                if r.get('metadata', {}).get('uid') and self._controlled_by(r, 'Deployment', {uid})
+                and self._image_of(r.get('spec', {}).get('template', {}).get('spec', {}), service) == image}
+        if not sets: return False, False
+        selector = spec.get('selector', {}).get('matchLabels') or {'app': service}
+        digest = image.split('@', 1)[1] if '@' in image else None
+        pods = [p for p in self.kube.list_pods(ns, selector)
+                if not p.get('metadata', {}).get('deletionTimestamp') and self._controlled_by(p, 'ReplicaSet', sets)]
+        def exact(pod):
+            if self._image_of(pod.get('spec', {}), service) != image: return False
+            if digest is None: return True
+            statuses = [c for c in pod.get('status', {}).get('containerStatuses', []) if c.get('name') == service]
+            return bool(statuses) and all(str(c.get('imageID', '')).endswith(digest) for c in statuses)
+        return True, len(pods) >= desired and all(exact(p) and self._pod_ready(p) for p in pods)
+
+    def _rollout_health(self, ns, service, image, uid):
         deadline = time.monotonic() + self.cfg.change_rollout_timeout_seconds
         while True:
-            d = self.kube.get_deployment(ns, service) or {}; spec, status = d.get('spec', {}), d.get('status', {})
-            desired = spec.get('replicas', 1)
-            containers = spec.get('template', {}).get('spec', {}).get('containers', [])
-            current = next((c.get('image') for c in containers if c.get('name') == service), None)
-            rollout = (desired > 0 and current == image and status.get('observedGeneration', 0) >= d.get('metadata', {}).get('generation', 1)
-                       and status.get('updatedReplicas', 0) == desired and status.get('availableReplicas', 0) >= desired
-                       and status.get('replicas', 0) == desired)
+            rollout, health = self._rollout_snapshot(ns, service, image, uid)
             if rollout:
-                pods = [p for p in self.kube.list_pods(ns, {'app': service}) if not p.get('metadata', {}).get('deletionTimestamp')]
-                health = len(pods) >= desired and all(self._pod_ready(p) for p in pods)
                 return {'ok': health, 'rollout': {'status': '통과'}, 'health': {'status': '통과' if health else '실패'}}
             if time.monotonic() >= deadline: return {'ok': False, 'rollout': {'status': '실패'}, 'health': {'status': '미수행'}}
             self.sleep(2)
@@ -481,8 +553,8 @@ class ChangeService:
         containers = pod.get('status', {}).get('containerStatuses', [])
         return bool(containers) and all(c.get('ready') is True for c in containers)
 
-    def verify(self, ns, service, image, repro):
-        out = self._rollout_health(ns, service, image)
+    def verify(self, ns, service, image, repro, *, expected_uid):
+        out = self._rollout_health(ns, service, image, expected_uid)
         out.update(repro={'status': '미수행'}, exceptions={'status': '미관측'})
         if not out['ok']: return out
         if repro:
@@ -499,6 +571,13 @@ class ChangeService:
             out['ok'] = count == 0
         except Exception:
             out['ok'] = False; out['exceptions'] = {'status': '미관측'}
+        if out['ok']:
+            # A pod that went unready or a Deployment replaced during the observation window is not a pass.
+            rollout, health = self._rollout_snapshot(ns, service, image, expected_uid)
+            if not (rollout and health):
+                out['ok'] = False
+                out['rollout'] = {'status': '통과' if rollout else '실패'}
+                out['health'] = {'status': '실패'}
         return out
 
     def _logs(self, ns, service, start, end):

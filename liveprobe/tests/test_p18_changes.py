@@ -62,6 +62,21 @@ def setup(db_url):
         d['metadata'].update(uid='uid-' + ns, resourceVersion='1', namespace=ns, labels={'app.kubernetes.io/part-of': 'payment', 'liveprobe.io/managed': 'true'})
     k.get_deployment = lambda ns, name: copy.deepcopy(k.deployments[ns])
     k.pods = [mk_pod('payment-a', 'payment', None)]
+    # Controller simulation: the current ReplicaSet is owned by the live Deployment UID and its pods run the template image.
+    def current_rs(ns):
+        d = k.deployments[ns]; template = copy.deepcopy(d['spec']['template'])
+        image = template['spec']['containers'][0]['image']
+        return {'metadata': {'uid': f'rs-{ns}-{image}', 'ownerReferences': [{'kind': 'Deployment', 'uid': d['metadata']['uid'], 'controller': True}]},
+                'spec': {'template': template}}
+    def owned_pods(ns, selector=None):
+        rs = current_rs(ns); out = []
+        for p in copy.deepcopy(k.pods):
+            p['metadata']['ownerReferences'] = [{'kind': 'ReplicaSet', 'uid': rs['metadata']['uid'], 'controller': True}]
+            p['spec'] = {'containers': copy.deepcopy(rs['spec']['template']['spec']['containers'])}
+            out.append(p)
+        return out
+    k.list_replicasets = lambda ns: [current_rs(ns)]
+    k.list_pods = owned_pods
     k.services['payment'] = {'spec': {'ports': [{'port': 80}]}}
     with db.session() as s:
         i = Incident(fingerprint='p18', namespace='prd', workload='payment', title='예외', status='handed_off', handoff={'remediation': {'kind': 'code_fix', 'repro': {'method': 'GET', 'path': '/pay', 'query': {'id': '1'}}}})
@@ -69,7 +84,7 @@ def setup(db_url):
         s.add(i); s.flush(); iid = i.id
         s.add(Evidence(incident_id=iid, source='loki', payload={'logs': ['File "app.py", line 1: ValueError']}))
     p, r = Planner(), Release(k)
-    cfg = AppConfig(runner_systems={'payment': ['payment']})
+    cfg = AppConfig(runner_systems={'payment': ['payment']}, change_rollout_timeout_seconds=1)
     svc = ChangeService(cfg, Settings(), p, k, release=r, sleep=lambda _: None, logs=lambda *a: 0, reproduce=lambda *a: True)
     return N(service=svc, kube=k, planner=p, release=r, iid=iid)
 
@@ -163,7 +178,7 @@ def test_loki_unavailable_fails_and_rolls_back_with_receipt(setup):
 
 def test_no_repro_is_recorded_not_fabricated_as_pass(setup):
     x = setup
-    out = x.service.verify('dev', 'payment', 'local/payment:base', None)
+    out = x.service.verify('dev', 'payment', 'local/payment:base', None, expected_uid='uid-dev')
     assert out['repro']['status'] == '미수행' and out['ok']
 
 
@@ -218,7 +233,7 @@ def test_runner_real_git_roundtrip_and_no_original_mutation(tmp_path):
     spec = importlib.util.spec_from_file_location('p18_runner', Path(__file__).resolve().parents[2] / 'scripts/liveprobe-runner.py')
     runner = importlib.util.module_from_spec(spec); spec.loader.exec_module(runner)
     source = tmp_path / 'original'; source.mkdir()
-    (source / 'app.py').write_text('bad\n')
+    (source / 'app.py').write_text('bad\n'); (source / 'Dockerfile').write_text('FROM scratch\n')
     def git(*args):
         return subprocess.run(['git', '-c', 'user.name=Test', '-c', 'user.email=test@localhost', *args], cwd=source, check=True, capture_output=True, text=True).stdout.strip()
     git('init', '-b', 'main'); git('add', '.'); git('commit', '-m', 'base')
@@ -234,13 +249,22 @@ def test_runner_real_git_roundtrip_and_no_original_mutation(tmp_path):
             head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=kwargs['cwd'], capture_output=True, text=True).stdout.strip()
             return subprocess.CompletedProcess(args, 0, json.dumps({'url': 'https://github.com/live-probe/payment/pull/4', 'number': 4, 'headRefOid': head, 'state': 'OPEN'}), '')
         if args[0] == 'git' and 'push' in args: return subprocess.CompletedProcess(args, 0, '', '')
+        if args[:2] == ['docker', 'run']:
+            # Repository tests only ever run inside the isolated container, never as a host process.
+            assert '--network=none' in args and '--read-only' in args and args[args.index('--user') + 1] == '10001:10001'
+            return subprocess.CompletedProcess(args, 0, 'Ran 1 test\nOK\n', '')
+        if args[:2] == ['docker', 'build']:
+            assert '--network=none' in args and '--pull=false' in args
+            return subprocess.CompletedProcess(args, 0, '', '')
         if args[:3] == ['docker', 'image', 'inspect']:
             return subprocess.CompletedProcess(args, 0, json.dumps([{'Id': 'sha256:' + 'a' * 64, 'RepoDigests': ['local/payment@sha256:' + 'b' * 64]}]), '')
+        assert args[0] == 'git', args
         return subprocess.run(args, **kwargs)
     cfg = {'api': 'http://localhost', 'token_file': 'unused', 'systems': {'payment': {'services': {'payment': {
         'github_repo': 'live-probe/payment', 'source_subdir': '.', 'base_branch': 'main',
         'work_repo': '.liveprobe-runner/repos/payment-payment', 'image_repo': 'local/payment',
-        'test_cmd': "python3 -c \"print('Ran 1 test'); print('OK')\"", 'build_cmd': 'python3 -c "print(123)"'}}}}}
+        'test_image': 'python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e',
+        'test_cmd': 'python -m unittest discover -s tests', 'build_cmd': 'docker build --pull=false -t {image} {dir}'}}}}}
     r = runner.Runner(cfg, root=tmp_path, execute=execute)
     payload = {'cr_id': 8, 'system': 'payment', 'service': 'payment', 'paths': ['app.py']}
     fetched = r.fetch_source(payload)
@@ -303,7 +327,7 @@ def test_git_style_regular_file_diff_is_supported_without_symlink_modes():
 
 def test_missing_ready_condition_is_not_healthy(setup):
     setup.kube.pods[0]['status']['conditions'] = [{'type':'ContainersReady','status':'True'}]
-    result = setup.service.verify('dev','payment','local/payment:base',None)
+    result = setup.service.verify('dev','payment','local/payment:base',None,expected_uid='uid-dev')
     assert not result['ok'] and result['health']['status'] == '실패'
 
 
@@ -332,6 +356,7 @@ def test_runner_review_checks_human_merge_and_rebuilds_exact_tree(tmp_path):
             return json.dumps({'url':'https://github.com/live-probe/payment/pull/4','number':4,'headRefOid':'b'*40,'state':'MERGED','mergeCommit':{'oid':'c'*40},'mergedBy':{'login':'reviewer'},'baseRefName':'main'})
         if args[:2]==['gh','api']: return 'User\n'
         if 'HEAD^{tree}' in args: return 'd'*40
+        if 'origin/main' in args: return 'c'*40  # main has not moved during the rebuild
         return ''
     r.run=run
     r.tests_and_image=lambda *a: {'source_tree':'d'*40,'image':'local/payment:merged','image_id':'sha256:'+'a'*64,'tests':{'total':1,'failed':0}}

@@ -26,3 +26,15 @@ test('표시용 상태는 한국어이며 PR 링크는 해당 비공개 저장�
   assert.equal(safePrUrl({repository:'live-probe/payment',pr_number:4,pr_url:'https://github.com/live-probe/payment/pull/4'}), 'https://github.com/live-probe/payment/pull/4');
   assert.equal(safePrUrl({repository:'live-probe/payment',pr_number:4,pr_url:'javascript:alert(1)'}), null);
 });
+test('실행 전 중단된 단계는 실패·원복으로 꾸미지 않고 변경 없음으로 표시한다', async () => {
+  const { stageHeadingKo, rollbackKo } = await import('../src/changes.ts');
+  const blocked = { status:'blocked', reverted:false, rollback:{status:'미수행'}, error:'GitHub 병합 확인이 만료되어 실행 전에 중단했습니다.' };
+  assert.equal(stageHeadingKo(blocked), '실행 전 중단 · 변경 없음');
+  assert.equal(rollbackKo(blocked), '변경이 없어 원복하지 않음');
+  assert.equal(rollbackKo({ status:'failed', reverted:false, rollback:{status:'미확정'} }), '원복 미확정 · 사람 확인 필요');
+  assert.equal(rollbackKo({ status:'failed', reverted:true, rollback:{status:'통과'} }), '이전 이미지로 원복·검증 완료');
+  assert.equal(rollbackKo({ status:'verified', reverted:false }), '해당 없음');
+  // 중단 뒤에는 이전 단계로 돌아가 다시 승격할 수 있다.
+  const c = cr('stg_verified'); c.stages = { prd: blocked };
+  assert.equal(nextStage(c), 'prd');
+});
