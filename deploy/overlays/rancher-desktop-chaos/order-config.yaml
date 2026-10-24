@@ -1,0 +1,14 @@
+# KAN-96 §3: order DB wiring, chaos overlay only. The default profile never creates a DataSource
+# (ORDER_DB_ENABLED absent). Password comes from Secret liveprobe-target/order-db (env ORDER_DB_PASSWORD).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-config
+  namespace: liveprobe-target
+data:
+  ORDER_DB_ENABLED: "true"
+  ORDER_DB_URL: jdbc:postgresql://postgres.liveprobe-system.svc:5432/order_app
+  ORDER_DB_USER: order_app
+  # Hikari pool N=4 (pool_exhaust holds exactly N); role CONNECTION LIMIT 8 covers a rollout surge.
+  ORDER_DB_POOL_MAX: "4"
+  ORDER_DB_CONNECTION_TIMEOUT_MS: "1000"

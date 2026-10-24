@@ -1,0 +1,596 @@
+{
+  "incident": {
+    "id": 990,
+    "title": "NetworkDrop on Deployment/p14-net-sink",
+    "namespace": "liveprobe-target",
+    "workload": "p14-net-sink",
+    "status": "handed_off",
+    "severity_level": "HIGH_RISK",
+    "signal_count": 1,
+    "created_at": "2026-10-18T13:45:01.811597Z",
+    "updated_at": "2026-10-18T13:47:24.586876Z",
+    "closed_at": "2026-10-18T13:47:24.586213Z",
+    "total_cost_usd": 0.562447,
+    "agent_run_count": 3
+  },
+  "headline": {
+    "what": "네트워크 차단 신호의 경로를 확인해야 합니다",
+    "impact": "파드는 준비되었지만 실제 통신 경로와 다른 서비스의 영향은 미확인입니다.",
+    "stage": {
+      "key": "handed_off",
+      "label": "운영자 인계"
+    },
+    "next": "자동 조치 없이 인계했습니다. 원문 근거를 확인한 뒤 AI에게 후속 작업을 지시하세요.",
+    "source": "rules"
+  },
+  "raw": [
+    {
+      "id": "E5_recent_events#3",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:29+00:00",
+      "raw": "Readiness probe failed: dial tcp 10.42.0.138:18080: connect: connection refused",
+      "severity": "warn",
+      "ko": "상태 확인 또는 포트 연결에 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#11",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:43+00:00",
+      "raw": "Readiness probe failed: dial tcp 10.42.0.135:18080: connect: connection refused",
+      "severity": "warn",
+      "ko": "상태 확인 또는 포트 연결에 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E1_deployment#0",
+      "ref": "E1_deployment",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:45:22.025963Z",
+      "raw": "{\"available_replicas\": 1, \"conditions\": [{\"reason\": \"MinimumReplicasAvailable\", \"status\": \"True\", \"type\": \"Available\"}, {\"reason\": \"NewReplicaSetAvailable\", \"status\": \"True\", \"type\": \"Progressing\"}], \"configmap_refs\": [\"p14-net-config\"], \"current_revision\": 1, \"current_revision_created\": \"2026-10-18T13:44:28+00:00\", \"images\": [\"liveprobe/liveprobe:p14-ship\"], \"name\": \"p14-net-sink\", \"ready_replicas\": 1, \"recent_rollout_at\": \"2026-10-18T13:44:30+00:00\", \"replicas\": 1, \"resources\": {\"p14-net-sink\": {\"limits\": {\"cpu\": \"100m\", \"memory\": \"128Mi\"}, \"requests\": {\"cpu\": \"10m\", \"memory\": \"32Mi\"}}}, \"revisions\": [{\"available\": 1, \"created\": \"2026-10-18T13:44:28+00:00\", \"images\": [\"liveprobe/liveprobe:p14-ship\"], \"replicas\": 1, \"replicaset\": \"p14-net-sink-7cd5d6c5f\", \"revision\": 1}], \"selector\": {\"app\": \"p14-net-sink\"}, \"unavailable_replicas\": 0, \"updated_replicas\": 1}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E2_pods#0",
+      "ref": "E2_pods",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:45:22.026436Z",
+      "raw": "{\"containers\": [{\"image\": \"liveprobe/liveprobe:p14-ship\", \"image_id\": \"docker-pullable://liveprobe/liveprobe@sha256:ca8a4537590c35b8ed953e0b65000632bee4aff737978c106b649089e2aa39a7\", \"image_provenance\": \"unverified\", \"last_exit_code\": null, \"last_terminated_at\": null, \"last_terminated_reason\": null, \"name\": \"p14-net-sink\", \"ready\": true, \"restart_count\": 0, \"spec_image\": \"liveprobe/liveprobe:p14-ship\", \"waiting_message\": null, \"waiting_reason\": null}], \"labels\": {\"app\": \"p14-net-sink\", \"liveprobe-check\": \"7170c55f2620434f8bd6e7aa04af30e5\", \"pod-template-hash\": \"7cd5d6c5f\"}, \"name\": \"p14-net-sink-7cd5d6c5f-57hn8\", \"node\": \"lima-rancher-desktop\", \"phase\": \"Running\", \"replicaset\": \"p14-net-sink-7cd5d6c5f\", \"terminating\": false}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E3_service#0",
+      "ref": "E3_service",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:45:22.028375Z",
+      "raw": "{\"exists\": false}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#0",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:29+00:00",
+      "raw": "Container image \"liveprobe/liveprobe:p14-ship\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#1",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:29+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#2",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:29+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#4",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:28.792058+00:00",
+      "raw": "Successfully assigned liveprobe-target/p14-net-sink-7cd5d6c5f-57hn8 to lima-rancher-desktop",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#5",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:28+00:00",
+      "raw": "Created pod: p14-net-sink-7cd5d6c5f-57hn8",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#6",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:44:28+00:00",
+      "raw": "Scaled up replica set p14-net-sink-7cd5d6c5f from 0 to 1",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#7",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:39:19+00:00",
+      "raw": "Stopping container p14-net-sink",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#8",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:43+00:00",
+      "raw": "Container image \"liveprobe/liveprobe:p14-final\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#9",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:43+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#10",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:43+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#12",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:42.414500+00:00",
+      "raw": "Successfully assigned liveprobe-target/p14-net-sink-bb5b9bd74-5btr6 to lima-rancher-desktop",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#13",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:42+00:00",
+      "raw": "Created pod: p14-net-sink-bb5b9bd74-5btr6",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#14",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:36:41+00:00",
+      "raw": "Scaled up replica set p14-net-sink-bb5b9bd74 from 0 to 1",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E6_metrics#0",
+      "ref": "E6_metrics",
+      "kind": "metric",
+      "source": "prometheus",
+      "at": "2026-10-18T13:45:22.080060Z",
+      "raw": "{\"_query\": {\"evaluated_at\": \"2026-10-18T13:45:21.869732+00:00\", \"promql\": {\"http_5xx\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\", status=~\\\"5..\\\"}[1m]))\", \"http_all\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"latency_ms\": \"1000 * sum by (app) (rate(http_server_requests_seconds_sum{namespace=\\\"liveprobe-target\\\"}[1m])) / sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"pool_active\": \"max by (app) (hikaricp_connections_active{namespace=\\\"liveprobe-target\\\"})\", \"pool_max\": \"max by (app) (hikaricp_connections_max{namespace=\\\"liveprobe-target\\\"})\", \"pool_pending\": \"max by (app) (hikaricp_connections_pending{namespace=\\\"liveprobe-target\\\"})\", \"pool_timeouts\": \"sum by (app) (increase(hikaricp_connections_timeout_total{namespace=\\\"liveprobe-target\\\"}[5m]))\", \"restarts\": \"sum by (pod) (kube_pod_container_status_restarts_total{namespace=\\\"liveprobe-target\\\"})\"}, \"range\": \"1m\"}, \"db_pool_acquire_timeouts_5m\": {}, \"db_pool_active\": {}, \"db_pool_max\": {}, \"db_pool_pending_threads\": {}, \"http_5xx_rate_per_s\": {\"p14-net-sink\": 0.0}, \"http_rate_per_s\": {\"p14-net-sink\": 0.0}, \"mean_latency_ms_1m\": {}, \"restarts\": {\"p14-net-sink-7cd5d6c5f-57hn8\": 0}}",
+      "severity": "info",
+      "ko": "수집 당시의 원천 지표입니다. 누락된 지표는 정상으로 판정하지 않습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E8_node#0",
+      "ref": "E8_node",
+      "kind": "node",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:45:22.044198Z",
+      "raw": "{\"allocatable\": {\"cpu\": \"4\", \"memory\": \"12232176Ki\", \"pods\": \"110\"}, \"conditions\": {\"DiskPressure\": {\"reason\": \"KubeletHasNoDiskPressure\", \"since\": \"2026-07-15T14:01:42+00:00\", \"status\": \"False\"}, \"MemoryPressure\": {\"reason\": \"KubeletHasSufficientMemory\", \"since\": \"2026-07-15T14:01:42+00:00\", \"status\": \"False\"}, \"PIDPressure\": {\"reason\": \"KubeletHasSufficientPID\", \"since\": \"2026-07-15T14:01:42+00:00\", \"status\": \"False\"}, \"Ready\": {\"reason\": \"KubeletReady\", \"since\": \"2026-07-15T14:37:08+00:00\", \"status\": \"True\"}}, \"name\": \"lima-rancher-desktop\", \"taints\": []}",
+      "severity": "info",
+      "ko": "노드 준비 상태와 할당 가능한 자원 정보입니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "E9_config#0",
+      "ref": "E9_config",
+      "kind": "config",
+      "source": "kubernetes",
+      "at": "2026-10-18T13:45:22.048745Z",
+      "raw": "{\"approved_version_matches\": null, \"binary_keys\": [], \"content_sha256\": \"dd6772677647f26eb93fb6cb6a3a3ce879f7fb2dffc42c2a1b769e3690417e06\", \"created\": \"2026-10-18T13:44:28+00:00\", \"data_sha256\": \"37f58197a7462f307d77b7de9da9dc8621968cb2ab9b812c377935bb8ccdbc30\", \"keys\": [\"PURPOSE\"], \"last_changed\": \"2026-10-18T13:44:28+00:00\", \"name\": \"p14-net-config\", \"resource_version\": \"1770230\"}",
+      "severity": "info",
+      "ko": "설정의 키와 해시만 수집했습니다. 값은 표시하지 않습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "evidence_curator",
+        "safety_verifier"
+      ]
+    },
+    {
+      "id": "agent:4230",
+      "ref": "agent:router",
+      "kind": "agent",
+      "source": "agent:router",
+      "at": "2026-10-18T13:45:29.267633Z",
+      "raw": "The rule engine identifies a NetworkDrop signal, which requires operator handoff without automatic remediation. The workload is otherwise healthy and a recent rollout is present, but that does not override the routing-risk rule.",
+      "severity": "info",
+      "ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4231",
+      "ref": "agent:evidence_curator",
+      "kind": "agent",
+      "source": "agent:evidence_curator",
+      "at": "2026-10-18T13:45:53.948389Z",
+      "raw": "HIGH_RISK handoff: NetworkDrop is reported for liveprobe-target/p14-net-sink, but the failing network path and cause are unverified. Observed scope is one workload with one Ready pod; no failing callers are identified. Wider impact is unknown because traffic, latency, Service details, and application logs are insufficient.",
+      "severity": "info",
+      "ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4232",
+      "ref": "agent:safety_verifier",
+      "kind": "agent",
+      "source": "agent:safety_verifier",
+      "at": "2026-10-18T13:47:24.542442Z",
+      "raw": "HIGH_RISK operator handoff for incident 990, liveprobe-target/p14-net-sink. The curator correctly recommends handoff: NetworkDrop is reported, but the failing path, cause, and impact are unverified. One pod is Ready; this does not establish caller connectivity. No corrective Kubernetes action is supported, and p14-net-sink is outside the approved Deployment targets.",
+      "severity": "info",
+      "ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    }
+  ],
+  "flow": {
+    "nodes": [
+      {
+        "id": "signal",
+        "type": "signal",
+        "label": "네트워크 차단 신호",
+        "role": null,
+        "role_ko": "네트워크 차단 신호",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 0,
+        "group": null
+      },
+      {
+        "id": "evidence",
+        "type": "evidence",
+        "label": "원천 근거 8건",
+        "role": null,
+        "role_ko": "원천 근거 8건",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 1,
+        "group": null
+      },
+      {
+        "id": "router",
+        "type": "router",
+        "label": "사건 수준 판단",
+        "role": "router",
+        "role_ko": "사건 수준 판단",
+        "job_ko": "원천 근거로 장애 수준과 분석 그룹을 결정합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 20645,
+          "out": 66
+        },
+        "cost_usd": 0.002097,
+        "duration_ms": 7135,
+        "inputs": [],
+        "conclusion_ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+        "conclusion_raw": "The rule engine identifies a NetworkDrop signal, which requires operator handoff without automatic remediation. The workload is otherwise healthy and a recent rollout is present, but that does not override the routing-risk rule.",
+        "lane": 0,
+        "depth": 2,
+        "group": null
+      },
+      {
+        "id": "group",
+        "type": "group",
+        "label": "고위험 그룹 선택",
+        "role": null,
+        "role_ko": "고위험 그룹 선택",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 3,
+        "group": "HIGH_RISK"
+      },
+      {
+        "id": "run:4231",
+        "type": "agent",
+        "label": "근거 정리",
+        "role": "evidence_curator",
+        "role_ko": "근거 정리",
+        "job_ko": "고위험 장애에서 확인한 것과 아직 모르는 것을 구분합니다.",
+        "status": "done",
+        "model": "gpt-6-astra",
+        "effort": "high",
+        "tokens": {
+          "in": 18018,
+          "out": 817
+        },
+        "cost_usd": 0.22103,
+        "duration_ms": 24557,
+        "inputs": [
+          "E2_pods",
+          "E3_service",
+          "E4_callers",
+          "E6_metrics",
+          "R1",
+          "E1_deployment",
+          "E5_recent_events",
+          "E9_config",
+          "R2"
+        ],
+        "conclusion_ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+        "conclusion_raw": "HIGH_RISK handoff: NetworkDrop is reported for liveprobe-target/p14-net-sink, but the failing network path and cause are unverified. Observed scope is one workload with one Ready pod; no failing callers are identified. Wider impact is unknown because traffic, latency, Service details, and application logs are insufficient.",
+        "lane": 0,
+        "depth": 4,
+        "group": "HIGH_RISK"
+      },
+      {
+        "id": "run:4232",
+        "type": "verify",
+        "label": "안전 검증",
+        "role": "safety_verifier",
+        "role_ko": "안전 검증",
+        "job_ko": "자동 조치를 멈추고 운영자에게 전달할 내용을 확인합니다.",
+        "status": "done",
+        "model": "gpt-6-astra",
+        "effort": "xhigh",
+        "tokens": {
+          "in": 18697,
+          "out": 3047
+        },
+        "cost_usd": 0.33932,
+        "duration_ms": 90550,
+        "inputs": [
+          "E2_pods",
+          "E3_service",
+          "E4_callers",
+          "E6_metrics",
+          "E8_node",
+          "R1",
+          "E1_deployment",
+          "E5_recent_events",
+          "E9_config"
+        ],
+        "conclusion_ko": "네트워크 차단 신호는 있지만 실패 경로·원인·영향 범위는 확인되지 않았습니다. 파드 준비 상태만으로 통신 정상이라고 할 수 없습니다. 자동 조치 없이 운영자에게 인계합니다.",
+        "conclusion_raw": "HIGH_RISK operator handoff for incident 990, liveprobe-target/p14-net-sink. The curator correctly recommends handoff: NetworkDrop is reported, but the failing path, cause, and impact are unverified. One pod is Ready; this does not establish caller connectivity. No corrective Kubernetes action is supported, and p14-net-sink is outside the approved Deployment targets.",
+        "lane": 0,
+        "depth": 5,
+        "group": "HIGH_RISK"
+      },
+      {
+        "id": "outcome",
+        "type": "outcome",
+        "label": "운영자 인계",
+        "role": null,
+        "role_ko": "운영자 인계",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 6,
+        "group": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "signal>evidence:flow",
+        "source": "signal",
+        "target": "evidence",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "evidence>router:flow",
+        "source": "evidence",
+        "target": "router",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "router>group:flow",
+        "source": "router",
+        "target": "group",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "group>run:4231:flow",
+        "source": "group",
+        "target": "run:4231",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4231>run:4232:flow",
+        "source": "run:4231",
+        "target": "run:4232",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4232>outcome:flow",
+        "source": "run:4232",
+        "target": "outcome",
+        "kind": "flow",
+        "label": null
+      }
+    ]
+  },
+  "interpreting": false
+}

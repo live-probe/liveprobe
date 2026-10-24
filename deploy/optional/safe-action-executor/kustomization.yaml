@@ -1,0 +1,9 @@
+# KAN-135 (KAN-55): least-privilege identity for the five typed safe actions.
+# RENDER-CHECK ONLY. Deliberately NOT referenced by deploy/base or any overlay: applying it
+# requires the explicit, scoped live authorization tracked on KAN-55 (no live writes in KAN-135).
+# The LiveProbe API SA stays observe-only and remains blocked by liveprobe-deny-target-writes.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - safe-action-executor.yaml
+  - executor-token.yaml

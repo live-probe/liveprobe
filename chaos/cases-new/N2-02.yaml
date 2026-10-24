@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N2-02",
+  "family": "oom",
+  "target": "inventory",
+  "injection": {
+    "mode": "controlled_oom",
+    "parameters": {
+      "duration_seconds": 24
+    }
+  },
+  "expected_signal": "oom_killed",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "moderate",
+  "ground_truth": {
+    "cause": "inventory: test-only memory pressure until OOMKilled at its 512Mi limit",
+    "expected_response": "raise the memory limit within the approved bounds and verify readiness",
+    "decoy_signal": "short startup probe failure after restart",
+    "evidence_sufficiency": "sufficient"
+  }
+}

@@ -1,0 +1,220 @@
+# KAN-64: `promtool test rules` unit tests for the rule files embedded in prometheus-config.
+# Not a Kubernetes resource (not listed in any kustomization). The offline test
+# deploy/base/observability/test_prometheus_ksm.py extracts recording.yml / alerts.yml from the
+# ConfigMap next to this file and runs promtool from the pinned prom/prometheus image.
+# Input series use the label sets actually observed on rancher-desktop (KAN-64 evidence).
+rule_files:
+  - recording.yml
+  - alerts.yml
+evaluation_interval: 30s
+tests:
+  # --- recording rules (KAN-64 plumbing) ---------------------------------------------------------
+  - name: http request rate, 5xx ratio and latency per app
+    interval: 30s
+    input_series:
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="order",pod="order-a",uri="/api/orders/check",status="200"}'
+        values: '0+54x10'          # 1.8 req/s
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="order",pod="order-a",uri="/api/orders/check",status="502"}'
+        values: '0+6x10'           # 0.2 req/s
+      - series: 'http_server_requests_seconds_sum{namespace="liveprobe-target",app="order",pod="order-a",uri="/api/orders/check",status="200"}'
+        values: '0+27x10'          # 0.5 s per request
+      - series: 'http_server_requests_seconds_sum{namespace="liveprobe-target",app="order",pod="order-a",uri="/api/orders/check",status="502"}'
+        values: '0+3x10'
+      # actuator scrapes are excluded from latency, and other namespaces/apps are ignored
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="order",pod="order-a",uri="/actuator/prometheus",status="200"}'
+        values: '0+15x10'
+      - series: 'http_server_requests_seconds_sum{namespace="liveprobe-target",app="order",pod="order-a",uri="/actuator/prometheus",status="200"}'
+        values: '0+150x10'
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-system",app="liveprobe-api",pod="api-a",uri="/x",status="500"}'
+        values: '0+300x10'
+    promql_expr_test:
+      - expr: liveprobe:http_server_requests:rate1m{app="order"}
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:http_server_requests:rate1m{namespace="liveprobe-target",app="order",status="200"}'
+            value: 2.3
+          - labels: 'liveprobe:http_server_requests:rate1m{namespace="liveprobe-target",app="order",status="502"}'
+            value: 0.2
+      - expr: liveprobe:http_server_requests_5xx:ratio_rate1m
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:http_server_requests_5xx:ratio_rate1m{namespace="liveprobe-target",app="order"}'
+            value: 0.08
+      - expr: liveprobe:http_server_requests_latency_seconds:avg_rate1m
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:http_server_requests_latency_seconds:avg_rate1m{namespace="liveprobe-target",app="order"}'
+            value: 0.5
+      - expr: liveprobe:http_server_requests:rate1m{namespace="liveprobe-system"}
+        eval_time: 5m
+        exp_samples: []
+
+  - name: hikari pool utilization, memory vs limit, restarts, unavailable replicas
+    interval: 30s
+    input_series:
+      - series: 'hikaricp_connections_active{namespace="liveprobe-target",app="inventory",pod="inventory-a",pool="inventory",application="inventory"}'
+        values: '4x10'
+      - series: 'hikaricp_connections_max{namespace="liveprobe-target",app="inventory",pod="inventory-a",pool="inventory",application="inventory"}'
+        values: '5x10'
+      - series: 'container_memory_working_set_bytes{namespace="liveprobe-target",pod="order-a",container="order",node="n1"}'
+        values: '268435456x10'     # 256Mi
+      - series: 'container_spec_memory_limit_bytes{namespace="liveprobe-target",pod="order-a",container="order",node="n1"}'
+        values: '536870912x10'     # 512Mi
+      # pod-level cgroup (container="") and "no limit" (0) must not produce a ratio
+      - series: 'container_memory_working_set_bytes{namespace="liveprobe-target",pod="order-a",container="",node="n1"}'
+        values: '300000000x10'
+      - series: 'container_memory_working_set_bytes{namespace="liveprobe-target",pod="loadgen-a",container="loadgen",node="n1"}'
+        values: '1000000x10'
+      - series: 'container_spec_memory_limit_bytes{namespace="liveprobe-target",pod="loadgen-a",container="loadgen",node="n1"}'
+        values: '0x10'
+      # rancher-desktop/k3s live shape: pod-level series only, no container label -> pod-level ratio
+      - series: 'container_memory_working_set_bytes{namespace="liveprobe-target",pod="inventory-a",node="n1"}'
+        values: '134217728x10'     # 128Mi
+      - series: 'container_spec_memory_limit_bytes{namespace="liveprobe-target",pod="inventory-a",node="n1"}'
+        values: '536870912x10'     # 512Mi
+      - series: 'kube_pod_container_status_restarts_total{namespace="liveprobe-target",pod="order-a",container="order",uid="u1"}'
+        values: '0 0 0 1 1 1 2 2 2 2 2'
+      - series: 'kube_deployment_status_replicas_unavailable{namespace="liveprobe-target",deployment="order",instance="ksm:8080",job="kube-state-metrics"}'
+        values: '0 0 0 1 1 1 1 1 1 1 1'
+    promql_expr_test:
+      - expr: liveprobe:hikaricp_connections:utilization
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:hikaricp_connections:utilization{namespace="liveprobe-target",app="inventory",pool="inventory"}'
+            value: 0.8
+      - expr: liveprobe:container_memory_working_set:ratio_limit
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:container_memory_working_set:ratio_limit{namespace="liveprobe-target",pod="order-a",container="order"}'
+            value: 0.5
+          - labels: 'liveprobe:container_memory_working_set:ratio_limit{namespace="liveprobe-target",pod="inventory-a"}'
+            value: 0.25
+      - expr: liveprobe:kube_pod_container_restarts:increase5m
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:kube_pod_container_restarts:increase5m{namespace="liveprobe-target",pod="order-a",container="order"}'
+            value: 2
+      - expr: liveprobe:kube_deployment_replicas_unavailable
+        eval_time: 5m
+        exp_samples:
+          - labels: 'liveprobe:kube_deployment_replicas_unavailable{namespace="liveprobe-target",deployment="order"}'
+            value: 1
+
+  # --- existing Family 1/4 alerts (KAN-34): regression guard, expressions unchanged -----------------
+  - name: image pull alert fires only for target image-pull reasons
+    interval: 15s
+    input_series:
+      - series: 'kube_pod_container_status_waiting_reason{namespace="liveprobe-target",pod="order-b",container="order",reason="ImagePullBackOff"}'
+        values: '1x8'
+      - series: 'kube_pod_container_status_waiting_reason{namespace="liveprobe-target",pod="order-c",container="order",reason="CrashLoopBackOff"}'
+        values: '1x8'
+    alert_rule_test:
+      - alertname: TargetWorkloadImagePullFailing
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: warning, namespace: liveprobe-target, pod: order-b, container: order, reason: ImagePullBackOff}
+            exp_annotations:
+              summary: "Container order in order-b cannot pull its image (ImagePullBackOff)"
+
+  - name: no-endpoints alert fires when a target service loses every ready address
+    interval: 15s
+    input_series:
+      - series: 'kube_endpoint_info{namespace="liveprobe-target",endpoint="inventory"}'
+        values: '1x8'
+      - series: 'kube_endpoint_address{namespace="liveprobe-target",endpoint="inventory",ip="10.0.0.1",ready="false"}'
+        values: '1x8'
+      - series: 'kube_endpoint_info{namespace="liveprobe-target",endpoint="order"}'
+        values: '1x8'
+      - series: 'kube_endpoint_address{namespace="liveprobe-target",endpoint="order",ip="10.0.0.2",ready="true"}'
+        values: '1x8'
+    alert_rule_test:
+      - alertname: TargetServiceNoEndpoints
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, endpoint: inventory}
+            exp_annotations:
+              summary: "Service inventory has no ready endpoints"
+
+  - name: order 5xx alert above 0.1/s
+    interval: 15s
+    input_series:
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="order",pod="order-a",uri="/api/orders/check",status="502"}'
+        values: '0+3x8'           # 0.2/s
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="inventory",pod="inv-a",uri="/api/stock/{item}",status="503"}'
+        values: '0+3x8'           # not order: must not fire
+    alert_rule_test:
+      - alertname: OrderHigh5xxRate
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, app: order}
+            exp_annotations:
+              summary: "order is returning 5xx (0.20/s)"
+
+  - name: crash loop and OOM only target containers
+    interval: 15s
+    input_series:
+      - series: 'kube_pod_container_status_waiting_reason{namespace="liveprobe-target",pod="order-a",container="order",reason="CrashLoopBackOff"}'
+        values: '1x8'
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="liveprobe-target",pod="inventory-a",container="inventory",reason="OOMKilled"}'
+        values: '1x8'
+      - series: 'kube_pod_container_status_waiting_reason{namespace="liveprobe-system",pod="api-a",container="api",reason="CrashLoopBackOff"}'
+        values: '1x8'
+    alert_rule_test:
+      - alertname: TargetWorkloadCrashLooping
+        eval_time: 15s
+        exp_alerts: []
+      - alertname: TargetWorkloadCrashLooping
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, pod: order-a, container: order}
+            exp_annotations: {summary: "Container order in order-a is crash-looping"}
+      - alertname: TargetWorkloadOOMKilled
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, pod: inventory-a, container: inventory}
+            exp_annotations: {summary: "Container inventory in inventory-a was OOMKilled"}
+
+  - name: short OOMKilled fires without treating JVM Error as OOMKilled
+    interval: 30s
+    input_series:
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="liveprobe-target",pod="inventory-a",container="inventory",reason="OOMKilled"}'
+        values: '0 1 0 0'
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="liveprobe-target",pod="inventory-b",container="inventory",reason="Error"}'
+        values: '1x4'
+    alert_rule_test:
+      - alertname: TargetWorkloadOOMKilled
+        eval_time: 30s
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, pod: inventory-a, container: inventory}
+            exp_annotations: {summary: "Container inventory in inventory-a was OOMKilled"}
+      - alertname: TargetWorkloadOOMKilled
+        eval_time: 1m
+        exp_alerts: []
+
+  - name: latency and exhausted pool with inventory 5xx
+    interval: 15s
+    input_series:
+      - series: 'liveprobe:http_server_requests_latency_seconds:avg_rate1m{namespace="liveprobe-target",app="inventory"}'
+        values: '1.2x12'
+      - series: 'liveprobe:hikaricp_connections:utilization{namespace="liveprobe-target",app="inventory",pool="inventory"}'
+        values: '1x12'
+      - series: 'http_server_requests_seconds_count{namespace="liveprobe-target",app="inventory",uri="/api/stock/{item}",status="503"}'
+        values: '0+3x12'
+      - series: 'liveprobe:http_server_requests_latency_seconds:avg_rate1m{namespace="liveprobe-system",app="api"}'
+        values: '4x12'
+    alert_rule_test:
+      - alertname: TargetHighLatency
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: warning, namespace: liveprobe-target, app: inventory}
+            exp_annotations: {summary: "inventory mean request latency exceeded 500ms"}
+      - alertname: TargetConnectionPoolExhausted
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, app: inventory, pool: inventory}
+            exp_annotations: {summary: "inventory database connection pool is exhausted"}
+      - alertname: InventoryHigh5xxRate
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels: {severity: critical, namespace: liveprobe-target, app: inventory}
+            exp_annotations: {summary: "inventory is returning 5xx (0.20/s)"}

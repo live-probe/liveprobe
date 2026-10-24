@@ -1,0 +1,937 @@
+{
+  "incident": {
+    "id": 1976,
+    "title": "TargetConnectionPoolExhausted on App/order [eval N3-02/adaptive_noguide]",
+    "namespace": "liveprobe-target",
+    "workload": "order",
+    "status": "analyzing",
+    "severity_level": "NORMAL",
+    "signal_count": 1,
+    "created_at": "2026-10-19T00:00:00+09:00",
+    "updated_at": "2026-10-11T12:18:49.999748Z",
+    "closed_at": null,
+    "total_cost_usd": 0.189758,
+    "agent_run_count": 2
+  },
+  "headline": {
+    "what": "주문 서비스에서 데이터베이스 연결 풀이 고갈되었습니다",
+    "impact": "주문 서비스의 연결 풀이 모두 점유되어 데이터베이스 조회 실패가 반복됩니다.",
+    "stage": {
+      "key": "analyzing",
+      "label": "쿠버네티스 분석 중"
+    },
+    "next": "다음 단계부터 조사 방향을 반영합니다. 오른쪽 대화에서 AI에게 지시하세요.",
+    "source": "rules"
+  },
+  "raw": [
+    {
+      "id": "E7_error_logs#4",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:41.789646100Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-4\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=a error=ServiceUnavailable: 503 Service Unavailable: \\\"{\\\"timestamp\\\":\\\"2026-10-11T12:16:41.783+00:00\\\",\\\"status\\\":503,\\\"e",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#5",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:41.781264766Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-8\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=a error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#7",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:40.670354891Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-7\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=a error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#8",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:39.141437682Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=gadget error=ServiceUnavailable: 503 Service Unavailable: \\\"{\\\"timestamp\\\":\\\"2026-10-11T12:16:39.134+00:00\\\",\\\"status\\\":50",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#9",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:39.129515973Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-6\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=gadget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#11",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:38.014993931Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-9\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=gadget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#12",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:36.489464847Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=widget error=ServiceUnavailable: 503 Service Unavailable: \\\"{\\\"timestamp\\\":\\\"2026-10-11T12:16:36.486+00:00\\\",\\\"status\\\":50",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#13",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:36.484429972Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-2\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=widget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#15",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:35.373032847Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-10\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=widget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#16",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:33.853826679Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-7\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=b error=ServiceUnavailable: 503 Service Unavailable: \\\"{\\\"timestamp\\\":\\\"2026-10-11T12:16:33.850+00:00\\\",\\\"status\\\":503,\\\"e",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#17",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:33.848655638Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-9\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=b error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#19",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:32.728743512Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=b error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#20",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:28.209972718Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=gadget error=ServiceUnavailable: 503 Service Unavailable: \\\"{\\\"timestamp\\\":\\\"2026-10-11T12:16:28.207+00:00\\\",\\\"status\\\":50",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#21",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:28.207038343Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=gadget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#23",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[inventory] {\"@timestamp\":\"2026-10-11T12:16:27.093579468Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.inventory.StockController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-9\"}},\"service\":{\"name\":\"inventory\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"stock lookup db_error item=gadget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E5_recent_events#2",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:14+00:00",
+      "raw": "Readiness probe failed: HTTP probe failed with statuscode: 500",
+      "severity": "warn",
+      "ko": "상태 확인 또는 포트 연결에 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#5",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:08+00:00",
+      "raw": "Startup probe failed: HTTP probe failed with statuscode: 500",
+      "severity": "warn",
+      "ko": "상태 확인 또는 포트 연결에 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E1_deployment#0",
+      "ref": "E1_deployment",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:17:26.526544Z",
+      "raw": "{\"available_replicas\": 1, \"conditions\": [{\"reason\": \"MinimumReplicasAvailable\", \"status\": \"True\", \"type\": \"Available\"}, {\"reason\": \"NewReplicaSetAvailable\", \"status\": \"True\", \"type\": \"Progressing\"}], \"current_revision\": 103, \"current_revision_created\": \"2026-10-11T03:42:15+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"name\": \"order\", \"ready_replicas\": 1, \"recent_rollout_at\": \"2026-10-11T12:11:14+00:00\", \"replicas\": 1, \"resources\": {\"order\": {\"limits\": {\"memory\": \"512Mi\"}, \"requests\": {\"cpu\": \"100m\", \"memory\": \"256Mi\"}}}, \"revisions\": [{\"available\": 1, \"created\": \"2026-10-11T03:42:15+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 1, \"replicaset\": \"order-6589d69896\", \"revision\": 103}, {\"available\": 0, \"created\": \"2026-10-11T11:52:20+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-66c88dd774\", \"revision\": 102}, {\"available\": 0, \"created\": \"2026-10-11T11:55:54+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-6778fb775c\", \"revision\": 100}, {\"available\": 0, \"created\": \"2026-10-11T11:47:22+00:00\", \"images\": [\"liveprobe/order:does-not-exist-19\"], \"replicas\": 0, \"replicaset\": \"order-8654db8f6f\", \"revision\": 96}, {\"available\": 0, \"created\": \"2026-10-11T03:40:05+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-7d89599ff5\", \"revision\": 92}, {\"available\": 0, \"created\": \"2026-10-11T03:20:29+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-b5d8db559\", \"revision\": 91}, {\"available\": 0, \"created\": \"2026-10-11T00:26:03+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-6cbc4dffbf\", \"revision\": 90}, {\"available\": 0, \"created\": \"2026-10-11T02:00:28+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-fcd6b8d7\", \"revision\": 89}, {\"available\": 0, \"created\": \"2026-10-11T02:06:08+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-74ff55c9fb\", \"revision\": 71}, {\"available\": 0, \"created\": \"2026-10-05T05:13:20+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-5bfb6984cf\", \"revision\": 65}], \"selector\": {\"app\": \"order\"}, \"unavailable_replicas\": 0, \"updated_replicas\": 1}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E2_pods#0",
+      "ref": "E2_pods",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:17:26.527202Z",
+      "raw": "{\"containers\": [{\"image\": \"liveprobe/order:kan119\", \"image_id\": \"docker-pullable://liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\", \"image_provenance\": \"digest_matches_spec\", \"last_exit_code\": null, \"last_terminated_at\": null, \"last_terminated_reason\": null, \"name\": \"order\", \"ready\": true, \"restart_count\": 0, \"spec_image\": \"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\", \"waiting_message\": null, \"waiting_reason\": null}], \"labels\": {\"app\": \"order\", \"app.kubernetes.io/part-of\": \"liveprobe-target\", \"pod-template-hash\": \"6589d69896\", \"security.istio.io/tlsMode\": \"istio\", \"service.istio.io/canonical-name\": \"order\", \"service.istio.io/canonical-revision\": \"latest\"}, \"name\": \"order-6589d69896-fr2l7\", \"phase\": \"Running\", \"replicaset\": \"order-6589d69896\", \"terminating\": false}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E3_service#0",
+      "ref": "E3_service",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:17:26.531650Z",
+      "raw": "{\"matching_pods\": [\"order-6589d69896-fr2l7\"], \"name\": \"order\", \"pods_labeled_app_eq_service\": [\"order-6589d69896-fr2l7\"], \"ready_endpoints\": 1, \"selector\": {\"app\": \"order\"}}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#0",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:14+00:00",
+      "raw": "Stopping container istio-proxy",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#1",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:14+00:00",
+      "raw": "Stopping container order",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#3",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:14+00:00",
+      "raw": "Deleted pod: order-66c88dd774-wfqlx",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#4",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:13+00:00",
+      "raw": "Scaled down replica set order-66c88dd774 from 1 to 0",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#6",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:07+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#7",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:07+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#8",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:06+00:00",
+      "raw": "Container image \"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#9",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:05+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#10",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:05+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#11",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:05+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#12",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:04+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#13",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:04+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#14",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:04+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#15",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:03.279192+00:00",
+      "raw": "Successfully assigned liveprobe-target/order-6589d69896-fr2l7 to lima-rancher-desktop",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#16",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:03+00:00",
+      "raw": "Created pod: order-6589d69896-fr2l7",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#17",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:11:03+00:00",
+      "raw": "Scaled up replica set order-6589d69896 from 0 to 1",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#18",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:10:59+00:00",
+      "raw": "Stopping container istio-proxy",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#19",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:10:59+00:00",
+      "raw": "Deleted pod: order-6589d69896-xtvgs",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E6_metrics#0",
+      "ref": "E6_metrics",
+      "kind": "metric",
+      "source": "prometheus",
+      "at": "2026-10-11T12:17:26.803779Z",
+      "raw": "{\"_query\": {\"evaluated_at\": \"2026-10-11T12:17:26.596855+00:00\", \"promql\": {\"http_5xx\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\", status=~\\\"5..\\\"}[1m]))\", \"http_all\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"latency_ms\": \"1000 * sum by (app) (rate(http_server_requests_seconds_sum{namespace=\\\"liveprobe-target\\\"}[1m])) / sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"pool_active\": \"max by (app) (hikaricp_connections_active{namespace=\\\"liveprobe-target\\\"})\", \"pool_max\": \"max by (app) (hikaricp_connections_max{namespace=\\\"liveprobe-target\\\"})\", \"pool_pending\": \"max by (app) (hikaricp_connections_pending{namespace=\\\"liveprobe-target\\\"})\", \"pool_timeouts\": \"sum by (app) (increase(hikaricp_connections_timeout_total{namespace=\\\"liveprobe-target\\\"}[5m]))\", \"restarts\": \"sum by (pod) (kube_pod_container_status_restarts_total{namespace=\\\"liveprobe-target\\\"})\"}, \"range\": \"1m\"}, \"db_pool_acquire_timeouts_5m\": {\"order\": 3.0}, \"db_pool_active\": {\"order\": 4.0}, \"db_pool_max\": {\"order\": 4.0}, \"db_pool_pending_threads\": {\"order\": 1.0}, \"http_5xx_rate_per_s\": {\"order\": 0.0222}, \"http_rate_per_s\": {\"order\": 2.8889}, \"mean_latency_ms_1m\": {\"order\": 29.7}, \"restarts\": {\"order-6589d69896-fr2l7\": 0}}",
+      "severity": "info",
+      "ko": "수집 당시의 원천 지표입니다. 누락된 지표는 정상으로 판정하지 않습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#0",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:17:24.978354245Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"order db lookup failed item=widget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#1",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:17:23.448547370Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-10\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"order db lookup failed item=b error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#2",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:17:21.928644077Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-6\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"order db lookup failed item=a error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#3",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:17:20.397047035Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"order db lookup failed item=gadget error=CannotGetJdbcConnectionException\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": "데이터베이스 연결 획득에 실패했습니다. 연결 풀 고갈 여부를 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#6",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:40.675439808Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-4\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=a attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#10",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:38.025048598Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=gadget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#14",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:35.378150972Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=widget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#18",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:32.738379845Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-7\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=b attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "E7_error_logs#22",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:17:26.925579Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:16:27.102548968Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=gadget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "log_summarizer"
+      ]
+    },
+    {
+      "id": "agent:4120",
+      "ref": "agent:router",
+      "kind": "agent",
+      "source": "agent:router",
+      "at": "2026-10-11T12:17:32.478661Z",
+      "raw": "One workload is healthy and serving traffic after a recent rollout. Latency is signaled by target connection pool exhaustion, but there is no OOM, crash loop, routing failure, or protected resource. The bounded latency issue fits NORMAL.",
+      "severity": "info",
+      "ko": "주문 프로세스의 데이터베이스 연결 풀이 모두 사용 중이며 연결 획득 실패가 반복됩니다. 재시작은 범위가 한정된 완화 조치이며 장기 원인은 추가 확인이 필요합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4121",
+      "ref": "agent:log_summarizer",
+      "kind": "agent",
+      "source": "agent:log_summarizer",
+      "at": "2026-10-11T12:17:43.442261Z",
+      "raw": "Order is logging repeated database connection failures, while its pool is fully occupied (4/4), with one waiting thread and three acquire timeouts in five minutes. Inventory logs the same JDBC connection failure and returns 503s to order; order’s measured 5xx rate is 0.0222/s with mean latency 29.7 ms. The data points to connection pressure but does not establish whether the cause is a stuck pool, database availability, or a recent rollout.",
+      "severity": "info",
+      "ko": "주문 프로세스의 데이터베이스 연결 풀이 모두 사용 중이며 연결 획득 실패가 반복됩니다. 재시작은 범위가 한정된 완화 조치이며 장기 원인은 추가 확인이 필요합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    }
+  ],
+  "flow": {
+    "nodes": [
+      {
+        "id": "signal",
+        "type": "signal",
+        "label": "연결 풀 고갈 신호",
+        "role": null,
+        "role_ko": "연결 풀 고갈 신호",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 0,
+        "group": null
+      },
+      {
+        "id": "evidence",
+        "type": "evidence",
+        "label": "원천 근거 7건",
+        "role": null,
+        "role_ko": "원천 근거 7건",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 1,
+        "group": null
+      },
+      {
+        "id": "router",
+        "type": "router",
+        "label": "사건 수준 판단",
+        "role": "router",
+        "role_ko": "사건 수준 판단",
+        "job_ko": "원천 근거로 장애 수준과 분석 그룹을 결정합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 16280,
+          "out": 71
+        },
+        "cost_usd": 0.001664,
+        "duration_ms": 5496,
+        "inputs": [],
+        "conclusion_ko": "주문 프로세스의 데이터베이스 연결 풀이 모두 사용 중이며 연결 획득 실패가 반복됩니다. 재시작은 범위가 한정된 완화 조치이며 장기 원인은 추가 확인이 필요합니다.",
+        "conclusion_raw": "One workload is healthy and serving traffic after a recent rollout. Latency is signaled by target connection pool exhaustion, but there is no OOM, crash loop, routing failure, or protected resource. The bounded latency issue fits NORMAL.",
+        "lane": 0,
+        "depth": 2,
+        "group": null
+      },
+      {
+        "id": "group",
+        "type": "group",
+        "label": "보통 그룹 선택",
+        "role": null,
+        "role_ko": "보통 그룹 선택",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 3,
+        "group": "NORMAL"
+      },
+      {
+        "id": "run:4121",
+        "type": "agent",
+        "label": "로그 요약",
+        "role": "log_summarizer",
+        "role_ko": "로그 요약",
+        "job_ko": "오류 로그와 지표에서 증상을 정리합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 16891,
+          "out": 805
+        },
+        "cost_usd": 0.002092,
+        "duration_ms": 10743,
+        "inputs": [
+          "E6_metrics",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "주문 프로세스의 데이터베이스 연결 풀이 모두 사용 중이며 연결 획득 실패가 반복됩니다. 재시작은 범위가 한정된 완화 조치이며 장기 원인은 추가 확인이 필요합니다.",
+        "conclusion_raw": "Order is logging repeated database connection failures, while its pool is fully occupied (4/4), with one waiting thread and three acquire timeouts in five minutes. Inventory logs the same JDBC connection failure and returns 503s to order; order’s measured 5xx rate is 0.0222/s with mean latency 29.7 ms. The data points to connection pressure but does not establish whether the cause is a stuck pool, database availability, or a recent rollout.",
+        "lane": 1,
+        "depth": 4,
+        "group": "NORMAL"
+      },
+      {
+        "id": "planned:k8s_analyst",
+        "type": "agent",
+        "label": "쿠버네티스 분석",
+        "role": "k8s_analyst",
+        "role_ko": "쿠버네티스 분석",
+        "job_ko": "배포와 파드 상태를 읽어 장애 원인을 좁힙니다.",
+        "status": "running",
+        "model": "gpt-6.1-sol",
+        "effort": "medium",
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 4,
+        "group": "NORMAL"
+      },
+      {
+        "id": "planned:coordinator",
+        "type": "agent",
+        "label": "진행 조정",
+        "role": "coordinator",
+        "role_ko": "진행 조정",
+        "job_ko": "병렬 분석 결과를 합쳐 복구 방향을 정합니다.",
+        "status": "planned",
+        "model": "gpt-6.1-sol",
+        "effort": "medium",
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 5,
+        "group": "NORMAL"
+      },
+      {
+        "id": "planned:group_verifier",
+        "type": "verify",
+        "label": "독립 결과 확인",
+        "role": "group_verifier",
+        "role_ko": "독립 결과 확인",
+        "job_ko": "그룹의 결론과 인용을 독립적으로 검증합니다.",
+        "status": "planned",
+        "model": "gpt-6.1-sol",
+        "effort": "medium",
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 6,
+        "group": "NORMAL"
+      },
+      {
+        "id": "outcome",
+        "type": "outcome",
+        "label": "결과 대기",
+        "role": null,
+        "role_ko": "결과 대기",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "planned",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 7,
+        "group": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "signal>evidence:flow",
+        "source": "signal",
+        "target": "evidence",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "evidence>router:flow",
+        "source": "evidence",
+        "target": "router",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "router>group:flow",
+        "source": "router",
+        "target": "group",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "group>run:4121:flow",
+        "source": "group",
+        "target": "run:4121",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "group>planned:k8s_analyst:flow",
+        "source": "group",
+        "target": "planned:k8s_analyst",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4121>planned:coordinator:flow",
+        "source": "run:4121",
+        "target": "planned:coordinator",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "planned:k8s_analyst>planned:coordinator:flow",
+        "source": "planned:k8s_analyst",
+        "target": "planned:coordinator",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "planned:coordinator>planned:group_verifier:flow",
+        "source": "planned:coordinator",
+        "target": "planned:group_verifier",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "planned:group_verifier>outcome:flow",
+        "source": "planned:group_verifier",
+        "target": "outcome",
+        "kind": "flow",
+        "label": null
+      }
+    ]
+  },
+  "interpreting": false
+}

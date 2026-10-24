@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "F3-13",
+  "family": "latency_pool",
+  "target": "inventory",
+  "injection": {
+    "mode": "controlled_latency",
+    "parameters": {
+      "delay_ms": 1300
+    }
+  },
+  "expected_signal": "slow_response",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "complex",
+  "ground_truth": {
+    "cause": "inventory: test-only bounded inventory/order latency (controlled_latency, {'delay_ms': 1300})",
+    "expected_response": "inspect request latency and upstream span; reset controlled fault",
+    "decoy_signal": "stale deployment event",
+    "evidence_sufficiency": "sufficient"
+  }
+}

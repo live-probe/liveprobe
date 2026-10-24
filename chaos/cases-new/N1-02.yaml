@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N1-02",
+  "family": "image_crash",
+  "target": "inventory",
+  "injection": {
+    "mode": "controlled_crash",
+    "parameters": {
+      "duration_seconds": 23
+    }
+  },
+  "expected_signal": "crash_loop",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "complex",
+  "ground_truth": {
+    "cause": "inventory: test-only process crash loop held for 23 s (controlled_crash)",
+    "expected_response": "inspect restart reason and exit code; hand off the application start failure",
+    "decoy_signal": "order retries visible in logs",
+    "evidence_sufficiency": "insufficient"
+  }
+}

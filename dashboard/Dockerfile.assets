@@ -1,0 +1,12 @@
+# 로컬의 검증된 p15o 런타임을 export한 rootfs + 검증된 정적 번들 전용.
+# scripts/build-dashboard-assets.py가 base digest·파일 해시를 확인하고 context를 만든다.
+# 외부 기반 이미지까지 다시 받는 클린 빌드가 아니다.
+FROM scratch
+ADD runtime-rootfs.tar /
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY dist/ /usr/share/nginx/html/
+EXPOSE 80
+STOPSIGNAL SIGQUIT
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

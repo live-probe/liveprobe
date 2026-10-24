@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "F2-08",
+  "family": "oom",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_oom",
+    "parameters": {
+      "duration_seconds": 13
+    }
+  },
+  "expected_signal": "oom_killed",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "moderate",
+  "ground_truth": {
+    "cause": "order: test-only bounded memory pressure (controlled_oom, {'duration_seconds': 13})",
+    "expected_response": "inspect OOM events and limits; reset controlled fault",
+    "decoy_signal": "stale deployment event",
+    "evidence_sufficiency": "sufficient"
+  }
+}

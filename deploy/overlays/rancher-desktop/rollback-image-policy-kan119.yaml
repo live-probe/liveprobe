@@ -1,0 +1,15 @@
+# KAN-119 local OCI index digests. Immutable and versioned: do not replace an
+# existing immutable ConfigMap under the same name (kubelet may cache its data).
+# Rotate this name and the rancher-only controller refs together on a new build.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollback-image-policy-kan119
+  namespace: liveprobe-system
+  labels:
+    app.kubernetes.io/part-of: liveprobe
+    liveprobe.io/provisioned-by: KAN-119
+immutable: true
+data:
+  inventory: liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf
+  order: liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec

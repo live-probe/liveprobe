@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: liveprobe-system
+  labels:
+    app.kubernetes.io/part-of: liveprobe
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: liveprobe-observability
+  labels:
+    app.kubernetes.io/part-of: liveprobe
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: liveprobe-target
+  labels:
+    app.kubernetes.io/part-of: liveprobe-target

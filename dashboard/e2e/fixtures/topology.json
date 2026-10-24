@@ -1,0 +1,585 @@
+{
+  "generated_at": 1792336572.9180646,
+  "freshness": {
+    "state": "connected",
+    "last_flow_age_s": 0.3,
+    "stale": false,
+    "stale_after_s": 60.0,
+    "window_s": 300.0,
+    "received_total": 286440,
+    "nodes_connected": 1,
+    "error": null
+  },
+  "nodes": [
+    {
+      "id": "liveprobe-system/Deployment/dashboard",
+      "kind": "Deployment",
+      "name": "dashboard",
+      "namespace": "liveprobe-system",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "dashboard",
+          "ports": [
+            80
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Deployment/liveprobe-api",
+      "kind": "Deployment",
+      "name": "liveprobe-api",
+      "namespace": "liveprobe-system",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "liveprobe-api",
+          "ports": [
+            8000
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Deployment/rollback-controller",
+      "kind": "Deployment",
+      "name": "rollback-controller",
+      "namespace": "liveprobe-system",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "rollback-controller",
+          "ports": [
+            443
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Ingress/liveprobe-api",
+      "kind": "Ingress",
+      "name": "liveprobe-api",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "hosts": [
+        "liveprobe.localhost"
+      ],
+      "routes": [
+        {
+          "host": "liveprobe.localhost",
+          "path": "/api",
+          "service": "liveprobe-api",
+          "port": 8000,
+          "workload": "liveprobe-system/Deployment/liveprobe-api",
+          "backend_ready": true,
+          "backend_found": true
+        }
+      ],
+      "ingress_class": "traefik",
+      "role": "entry",
+      "broken_routes": []
+    },
+    {
+      "id": "liveprobe-system/Ingress/liveprobe-dashboard",
+      "kind": "Ingress",
+      "name": "liveprobe-dashboard",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "hosts": [
+        "liveprobe.localhost"
+      ],
+      "routes": [
+        {
+          "host": "liveprobe.localhost",
+          "path": "/",
+          "service": "dashboard",
+          "port": 80,
+          "workload": "liveprobe-system/Deployment/dashboard",
+          "backend_ready": true,
+          "backend_found": true
+        }
+      ],
+      "ingress_class": "traefik",
+      "role": "entry",
+      "broken_routes": []
+    },
+    {
+      "id": "liveprobe-system/Service/dashboard",
+      "kind": "Service",
+      "name": "dashboard",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "cluster_ip": "10.43.183.247",
+      "ports": [
+        80
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-system/Deployment/dashboard",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Service/liveprobe-api",
+      "kind": "Service",
+      "name": "liveprobe-api",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "cluster_ip": "10.43.188.156",
+      "ports": [
+        8000
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-system/Deployment/liveprobe-api",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Service/postgres",
+      "kind": "Service",
+      "name": "postgres",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "cluster_ip": "None",
+      "ports": [
+        5432
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-system/StatefulSet/postgres",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/Service/rollback-controller",
+      "kind": "Service",
+      "name": "rollback-controller",
+      "namespace": "liveprobe-system",
+      "status": "ready",
+      "cluster_ip": "10.43.32.16",
+      "ports": [
+        443
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-system/Deployment/rollback-controller",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-system/StatefulSet/postgres",
+      "kind": "StatefulSet",
+      "name": "postgres",
+      "namespace": "liveprobe-system",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "postgres",
+          "ports": [
+            5432
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "data",
+      "data_store": "pgvector"
+    },
+    {
+      "id": "liveprobe-target/Deployment/inventory",
+      "kind": "Deployment",
+      "name": "inventory",
+      "namespace": "liveprobe-target",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "inventory",
+          "ports": [
+            8080
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-target/Deployment/loadgen",
+      "kind": "Deployment",
+      "name": "loadgen",
+      "namespace": "liveprobe-target",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-target/Deployment/order",
+      "kind": "Deployment",
+      "name": "order",
+      "namespace": "liveprobe-target",
+      "pods": 1,
+      "ready": 1,
+      "status": "ready",
+      "node": "lima-rancher-desktop",
+      "services": [
+        {
+          "name": "order",
+          "ports": [
+            8080
+          ],
+          "endpoints_ready": 1
+        }
+      ],
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-target/Service/inventory",
+      "kind": "Service",
+      "name": "inventory",
+      "namespace": "liveprobe-target",
+      "status": "ready",
+      "cluster_ip": "10.43.193.134",
+      "ports": [
+        8080
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-target/Deployment/inventory",
+      "role": "service"
+    },
+    {
+      "id": "liveprobe-target/Service/order",
+      "kind": "Service",
+      "name": "order",
+      "namespace": "liveprobe-target",
+      "status": "ready",
+      "cluster_ip": "10.43.138.142",
+      "ports": [
+        8080
+      ],
+      "endpoints_ready": 1,
+      "folded_into": "liveprobe-target/Deployment/order",
+      "role": "service"
+    },
+    {
+      "id": "node/lima-rancher-desktop",
+      "kind": "Node",
+      "name": "lima-rancher-desktop",
+      "namespace": null,
+      "status": "ready",
+      "role": "node"
+    }
+  ],
+  "structure_edges": [
+    {
+      "from": "liveprobe-system/Deployment/dashboard",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-system/Deployment/liveprobe-api",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-system/StatefulSet/postgres",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-system/Deployment/rollback-controller",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-target/Deployment/inventory",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-target/Deployment/loadgen",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-target/Deployment/order",
+      "to": "node/lima-rancher-desktop",
+      "type": "runs_on",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-system/Service/dashboard",
+      "to": "liveprobe-system/Deployment/dashboard",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-system/Service/liveprobe-api",
+      "to": "liveprobe-system/Deployment/liveprobe-api",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-system/Service/postgres",
+      "to": "liveprobe-system/StatefulSet/postgres",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-system/Service/rollback-controller",
+      "to": "liveprobe-system/Deployment/rollback-controller",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-target/Service/inventory",
+      "to": "liveprobe-target/Deployment/inventory",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-target/Service/order",
+      "to": "liveprobe-target/Deployment/order",
+      "type": "selects",
+      "observed": false
+    },
+    {
+      "from": "liveprobe-system/Ingress/liveprobe-api",
+      "to": "liveprobe-system/Deployment/liveprobe-api",
+      "type": "routes_to",
+      "via_service": "liveprobe-api",
+      "observed": true
+    },
+    {
+      "from": "liveprobe-system/Ingress/liveprobe-dashboard",
+      "to": "liveprobe-system/Deployment/dashboard",
+      "type": "routes_to",
+      "via_service": "dashboard",
+      "observed": false
+    }
+  ],
+  "observed_edges": [
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-target/Deployment/inventory",
+      "flows": 2786,
+      "ok": 2786,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336571.1924577,
+      "ports": {
+        "TCP/15020": 1440,
+        "TCP/15021": 89
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-target/Deployment/order",
+      "flows": 2769,
+      "ok": 2769,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336570.884211,
+      "ports": {
+        "TCP/15020": 1427,
+        "TCP/15021": 84
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-system/Deployment/dashboard",
+      "flows": 657,
+      "ok": 657,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336570.1014903,
+      "ports": {
+        "TCP/15020": 277,
+        "TCP/15021": 91
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-system/Deployment/liveprobe-api",
+      "flows": 531,
+      "ok": 531,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336569.9612482,
+      "ports": {
+        "TCP/15020": 197,
+        "TCP/15021": 88
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-target/Deployment/loadgen",
+      "flows": 165,
+      "ok": 165,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336570.8836083,
+      "ports": {
+        "TCP/15021": 88
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "node/lima-rancher-desktop",
+      "to": "liveprobe-system/StatefulSet/postgres",
+      "flows": 162,
+      "ok": 162,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336559.8418949,
+      "ports": {
+        "TCP/15021": 91
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-system/Deployment/liveprobe-api",
+      "to": "liveprobe-system/StatefulSet/postgres",
+      "flows": 118,
+      "ok": 118,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336571.1795115,
+      "ports": {
+        "TCP/5432": 59
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-system/Ingress/liveprobe-api",
+      "to": "liveprobe-system/Deployment/liveprobe-api",
+      "flows": 72,
+      "ok": 72,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336571.1172044,
+      "ports": {
+        "TCP/8000": 36
+      },
+      "drop_reasons": {},
+      "via_service": {},
+      "via_controller": "kube-system/Deployment/traefik"
+    },
+    {
+      "from": "liveprobe-target/Deployment/order",
+      "to": "liveprobe-target/Deployment/loadgen",
+      "flows": 38,
+      "ok": 38,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336551.217493,
+      "ports": {
+        "TCP/34598": 10,
+        "TCP/34602": 9
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-target/Deployment/inventory",
+      "to": "liveprobe-target/Deployment/order",
+      "flows": 20,
+      "ok": 20,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336553.7620049,
+      "ports": {
+        "TCP/53706": 10
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-target/Deployment/order",
+      "to": "liveprobe-system/StatefulSet/postgres",
+      "flows": 20,
+      "ok": 20,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336550.1888552,
+      "ports": {
+        "TCP/5432": 10
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-target/Deployment/inventory",
+      "to": "liveprobe-system/StatefulSet/postgres",
+      "flows": 20,
+      "ok": 20,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336555.2944882,
+      "ports": {
+        "TCP/5432": 10
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    },
+    {
+      "from": "liveprobe-target/Deployment/order",
+      "to": "liveprobe-target/Deployment/inventory",
+      "flows": 18,
+      "ok": 18,
+      "dropped": 0,
+      "errors": 0,
+      "state": "ok",
+      "last_seen": 1792336544.5598984,
+      "ports": {
+        "TCP/8080": 9
+      },
+      "drop_reasons": {},
+      "via_service": {}
+    }
+  ],
+  "network_alerts": []
+}

@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# KAN-64/65 (KAN-107 decision A): scoped Rancher Desktop install of ONLY the liveprobe-observability
+# stack (+ its explicitly named Prometheus/Alloy/KSM cluster-scope RBAC). It must never contain
+# liveprobe-system, liveprobe-target or KAN-103 (rollback-controller / write-guard) objects;
+# deploy/base/observability/test_config.py asserts that.
+#
+# Values mirror deploy/overlays/rancher-desktop so every object renders byte-identical to the full
+# overlay, except the kubelet egress CIDR which the full overlay does not set yet (fail-closed there).
+#   kubectl --context rancher-desktop diff  -k deploy/overlays/rancher-desktop-observability
+#   kubectl --context rancher-desktop apply -k deploy/overlays/rancher-desktop-observability
+resources:
+  - ../../base/observability
+
+patches:
+  # Same as deploy/base/kustomization.yaml (KAN-63): no SA token for workloads that never call the API.
+  - target:
+      kind: Deployment
+      name: ^(grafana|loki|alertmanager)$
+    patch: |-
+      - op: add
+        path: /spec/template/spec/automountServiceAccountToken
+        value: false
+  # Same values as deploy/overlays/rancher-desktop/platform.yaml.
+  - target:
+      kind: PersistentVolumeClaim
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: local-path
+  - target:
+      kind: Ingress
+      name: grafana
+    patch: |-
+      - op: add
+        path: /spec/ingressClassName
+        value: traefik
+      - op: replace
+        path: /spec/rules/0/host
+        value: grafana.localhost
+  # KAN-64: Prometheus -> kubelet :10250 only on the single Rancher Desktop node InternalIP
+  # (`kubectl get node -o wide`; kubelet serving cert SAN includes it, issued by the cluster CA).
+  - target:
+      kind: NetworkPolicy
+      name: prometheus-kubelet-egress
+    patch: |-
+      - op: replace
+        path: /spec/egress/0/to/0/ipBlock/cidr
+        value: 192.168.5.15/32

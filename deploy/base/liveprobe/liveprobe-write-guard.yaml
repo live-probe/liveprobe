@@ -1,0 +1,34 @@
+# Fail-closed defence against future accidental LiveProbe write bindings.
+# The API observes target resources; a separate controller must own approved changes.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: liveprobe-deny-target-writes
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["UPDATE"]
+        resources: ["deployments"]
+        scope: Namespaced
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["UPDATE"]
+        resources: ["services"]
+        scope: Namespaced
+  matchConditions:
+    - name: target-only
+      expression: "request.namespace == 'liveprobe-target'"
+  validations:
+    - expression: "request.userInfo.username != 'system:serviceaccount:liveprobe-system:liveprobe'"
+      message: "LiveProbe API cannot mutate target workloads or service routing"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: liveprobe-deny-target-writes
+spec:
+  policyName: liveprobe-deny-target-writes
+  validationActions: [Deny]

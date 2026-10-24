@@ -1,0 +1,43 @@
+# Secrets / credentials — never commit
+*.env
+.env*
+secrets/
+auth.json
+**/auth.json
+*.pem
+*.key
+.secrets/
+
+# Build / tooling
+node_modules/
+dist/
+/services/*/target/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Local evidence scratch (keep curated evidence under docs/evidence)
+.e2e-tmp/
+
+# Agent scratch files (throwaway probes; plans under .hermes/plans are kept)
+.hermes/cache/
+
+# Local credential backups taken before cluster changes (contain Secret data)
+*.secret.yaml
+
+# Google OAuth client credentials (Drive upload for diagrams)
+google_oauth.json
+
+# Database dumps contain application data (scripts/pg-backup.sh)
+backups/
+
+# Playwright runtime output (curated e2e artifacts are tracked separately)
+dashboard/e2e/test-results/
+dashboard/test-results/
+dashboard/playwright-report/
+
+# P18 개발 환경 러너(로컬 저장소·토큰). 커밋 금지.
+.liveprobe-runner/

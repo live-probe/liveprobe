@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Render-only portability overlay (KAN-61). It proves the base can be retargeted to a different
+# ingress controller, storage class, domain and private registry purely through overlay parameters.
+# The values below are test placeholders (reserved .test domain, TEST-NET-1 API address); this overlay
+# has not been installed on any cluster. Copy it and set real values for an actual environment.
+resources:
+  - ../../base
+  - platform.yaml
+
+components:
+  - ../../components/platform
+
+images:
+  - name: liveprobe/liveprobe
+    newName: registry.example.test/liveprobe/liveprobe
+    newTag: "0.1.0"
+  - name: liveprobe/dashboard
+    newName: registry.example.test/liveprobe/dashboard
+    newTag: "0.1.0"
+  - name: liveprobe/order
+    newName: registry.example.test/liveprobe/order
+    newTag: "0.1.0"
+  - name: liveprobe/inventory
+    newName: registry.example.test/liveprobe/inventory
+    newTag: "0.1.0"
+  - name: liveprobe/rollback-controller
+    newName: registry.example.test/liveprobe/rollback-controller
+    newTag: "0.1.0"
+  - name: pgvector/pgvector
+    newName: registry.example.test/mirror/pgvector/pgvector
+  - name: busybox
+    newName: registry.example.test/mirror/library/busybox
+  - name: curlimages/curl
+    newName: registry.example.test/mirror/curlimages/curl
+  - name: prom/prometheus
+    newName: registry.example.test/mirror/prom/prometheus
+  - name: prom/alertmanager
+    newName: registry.example.test/mirror/prom/alertmanager
+  - name: grafana/grafana
+    newName: registry.example.test/mirror/grafana/grafana
+  - name: grafana/loki
+    newName: registry.example.test/mirror/grafana/loki
+  - name: grafana/alloy
+    newName: registry.example.test/mirror/grafana/alloy
+  - name: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    newName: registry.example.test/mirror/kube-state-metrics/kube-state-metrics

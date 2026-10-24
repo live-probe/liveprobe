@@ -1,0 +1,1390 @@
+{
+  "incident": {
+    "id": 971,
+    "title": "TargetWorkloadOOMKilled on Deployment/inventory [eval N2-02/adaptive_guide]",
+    "namespace": "liveprobe-target",
+    "workload": "inventory",
+    "status": "resolved",
+    "severity_level": "COMPLEX",
+    "signal_count": 1,
+    "created_at": "2026-10-11T12:02:05.158147Z",
+    "updated_at": "2026-10-11T12:04:23.174855Z",
+    "closed_at": "2026-10-11T12:04:23.173561Z",
+    "total_cost_usd": 0.307853,
+    "agent_run_count": 7
+  },
+  "headline": {
+    "what": "재고 서비스가 메모리 초과로 종료되었습니다",
+    "impact": "재고 서비스의 유일한 파드가 준비되지 않아 주문 서비스에서 503 오류가 함께 발생했습니다.",
+    "stage": {
+      "key": "resolved",
+      "label": "자동 복구 완료"
+    },
+    "next": "AI가 조치를 실행하고 복구를 검증했습니다. 재발 여부를 확인하세요.",
+    "source": "rules"
+  },
+  "raw": [
+    {
+      "id": "E2_pods#0",
+      "ref": "E2_pods",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:02:05.543333Z",
+      "raw": "{\"containers\": [{\"image\": \"liveprobe/inventory:kan119\", \"image_id\": \"docker-pullable://liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\", \"image_provenance\": \"digest_matches_spec\", \"last_exit_code\": 137, \"last_terminated_at\": \"2026-10-11T12:01:58+00:00\", \"last_terminated_reason\": \"OOMKilled\", \"name\": \"inventory\", \"ready\": false, \"restart_count\": 1, \"spec_image\": \"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\", \"waiting_message\": \"back-off 10s restarting failed container=inventory pod=inventory-5fb6dd8476-fgrhh_liveprobe-target(2db5ea4d-f42e-4b52-bb75-19c6bfa64165)\", \"waiting_reason\": \"CrashLoopBackOff\"}], \"labels\": {\"app\": \"inventory\", \"app.kubernetes.io/part-of\": \"liveprobe-target\", \"pod-template-hash\": \"5fb6dd8476\", \"security.istio.io/tlsMode\": \"istio\", \"service.istio.io/canonical-name\": \"inventory\", \"service.istio.io/canonical-revision\": \"latest\"}, \"name\": \"inventory-5fb6dd8476-fgrhh\", \"phase\": \"Running\", \"replicaset\": \"inventory-5fb6dd8476\", \"terminating\": false}",
+      "severity": "error",
+      "ko": "메모리 한도를 넘어 컨테이너가 강제 종료되었습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#0",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:03.616314181Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=widget error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#2",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:02.960068264Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-6\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=b error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#4",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:02.301339555Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=a error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#6",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:01.673728388Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-7\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=gadget error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#8",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:01.050975346Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-8\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=widget error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#10",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:00.431451513Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=b error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#12",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:59.795175512Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-4\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=a error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#14",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:59.177232471Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-9\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=gadget error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#16",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:58.551321637Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=widget error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#18",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:57.928319012Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-10\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=b error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#20",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:57.291598095Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=a error=ServiceUnavailable: 503 Service Unavailable: \\\"no healthy upstream\\\"\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#25",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:56.644955886Z\",\"log\":{\"level\":\"ERROR\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-2\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call failed item=gadget error=ServiceUnavailable: 503 Service Unavailable: \\\"upstream connect error or disconnect/reset before headers. ret",
+      "severity": "error",
+      "ko": "호출할 준비된 대상이 없어 서비스 요청이 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#0",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:02:02+00:00",
+      "raw": "Back-off restarting failed container inventory in pod inventory-5fb6dd8476-fgrhh_liveprobe-target(2db5ea4d-f42e-4b52-bb75-19c6bfa64165)",
+      "severity": "warn",
+      "ko": "컨테이너가 반복 종료되어 재시작을 대기하고 있습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#8",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:56+00:00",
+      "raw": "Startup probe failed: HTTP probe failed with statuscode: 500",
+      "severity": "warn",
+      "ko": "상태 확인 또는 포트 연결에 실패했습니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E1_deployment#0",
+      "ref": "E1_deployment",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:02:05.542579Z",
+      "raw": "{\"available_replicas\": 0, \"conditions\": [{\"reason\": \"NewReplicaSetAvailable\", \"status\": \"True\", \"type\": \"Progressing\"}, {\"reason\": \"MinimumReplicasUnavailable\", \"status\": \"False\", \"type\": \"Available\"}], \"current_revision\": 149, \"current_revision_created\": \"2026-10-11T04:03:24+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"name\": \"inventory\", \"ready_replicas\": 0, \"recent_rollout_at\": \"2026-10-11T12:00:02+00:00\", \"replicas\": 1, \"resources\": {\"inventory\": {\"limits\": {\"memory\": \"512Mi\"}, \"requests\": {\"cpu\": \"100m\", \"memory\": \"256Mi\"}}}, \"revisions\": [{\"available\": 0, \"created\": \"2026-10-11T04:03:24+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 1, \"replicaset\": \"inventory-5fb6dd8476\", \"revision\": 149}, {\"available\": 0, \"created\": \"2026-10-11T11:59:30+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-dc9c6d858\", \"revision\": 148}, {\"available\": 0, \"created\": \"2026-10-11T03:48:58+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-75f9976545\", \"revision\": 146}, {\"available\": 0, \"created\": \"2026-10-11T03:43:17+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-56bbf6787f\", \"revision\": 145}, {\"available\": 0, \"created\": \"2026-10-11T03:15:33+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-544c4db4f6\", \"revision\": 144}, {\"available\": 0, \"created\": \"2026-10-11T00:33:18+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-64b4f6fbd6\", \"revision\": 143}, {\"available\": 0, \"created\": \"2026-10-11T01:34:20+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-59884cc988\", \"revision\": 142}, {\"available\": 0, \"created\": \"2026-10-11T01:31:19+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-796dcf975f\", \"revision\": 112}, {\"available\": 0, \"created\": \"2026-10-11T00:26:03+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-849cbcc64\", \"revision\": 110}, {\"available\": 0, \"created\": \"2026-10-05T05:13:20+00:00\", \"images\": [\"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\"], \"replicas\": 0, \"replicaset\": \"inventory-64c69784d6\", \"revision\": 109}], \"selector\": {\"app\": \"inventory\"}, \"unavailable_replicas\": 1, \"updated_replicas\": 1}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E3_service#0",
+      "ref": "E3_service",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:02:05.560792Z",
+      "raw": "{\"matching_pods\": [\"inventory-5fb6dd8476-fgrhh\"], \"name\": \"inventory\", \"pods_labeled_app_eq_service\": [\"inventory-5fb6dd8476-fgrhh\"], \"ready_endpoints\": 0, \"selector\": {\"app\": \"inventory\"}}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#1",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:01:57+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#2",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:01:56+00:00",
+      "raw": "Container image \"liveprobe/inventory@sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#3",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:01:56+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#4",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:00:02+00:00",
+      "raw": "Stopping container istio-proxy",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#5",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:00:02+00:00",
+      "raw": "Stopping container inventory",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#6",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:00:02+00:00",
+      "raw": "Deleted pod: inventory-dc9c6d858-9hv4c",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#7",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:00:02+00:00",
+      "raw": "Scaled down replica set inventory-dc9c6d858 from 1 to 0",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#9",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:48+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#10",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:48+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#11",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:48+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#12",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:47+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#13",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:47+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#14",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:47+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#15",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:46.085320+00:00",
+      "raw": "Successfully assigned liveprobe-target/inventory-5fb6dd8476-fgrhh to lima-rancher-desktop",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#16",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:46+00:00",
+      "raw": "Created pod: inventory-5fb6dd8476-fgrhh",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#17",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:46+00:00",
+      "raw": "Scaled up replica set inventory-5fb6dd8476 from 0 to 1",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#18",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:42+00:00",
+      "raw": "Stopping container istio-proxy",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E5_recent_events#19",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T11:59:42+00:00",
+      "raw": "Deleted pod: inventory-5fb6dd8476-zf4cd",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner"
+      ]
+    },
+    {
+      "id": "E6_metrics#0",
+      "ref": "E6_metrics",
+      "kind": "metric",
+      "source": "prometheus",
+      "at": "2026-10-11T12:02:05.960528Z",
+      "raw": "{\"_query\": {\"evaluated_at\": \"2026-10-11T12:02:05.645801+00:00\", \"promql\": {\"http_5xx\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\", status=~\\\"5..\\\"}[1m]))\", \"http_all\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"latency_ms\": \"1000 * sum by (app) (rate(http_server_requests_seconds_sum{namespace=\\\"liveprobe-target\\\"}[1m])) / sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"pool_active\": \"max by (app) (hikaricp_connections_active{namespace=\\\"liveprobe-target\\\"})\", \"pool_max\": \"max by (app) (hikaricp_connections_max{namespace=\\\"liveprobe-target\\\"})\", \"pool_pending\": \"max by (app) (hikaricp_connections_pending{namespace=\\\"liveprobe-target\\\"})\", \"pool_timeouts\": \"sum by (app) (increase(hikaricp_connections_timeout_total{namespace=\\\"liveprobe-target\\\"}[5m]))\", \"restarts\": \"sum by (pod) (kube_pod_container_status_restarts_total{namespace=\\\"liveprobe-target\\\"})\"}, \"range\": \"1m\"}, \"db_pool_acquire_timeouts_5m\": {\"inventory\": 0.0, \"order\": 0.0}, \"db_pool_active\": {\"order\": 0.0}, \"db_pool_max\": {\"order\": 4.0}, \"db_pool_pending_threads\": {\"order\": 0.0}, \"http_5xx_rate_per_s\": {\"inventory\": 0.0, \"order\": 0.1556}, \"http_rate_per_s\": {\"inventory\": 3.0, \"order\": 3.0667}, \"mean_latency_ms_1m\": {\"inventory\": 5.7, \"order\": 18.0}, \"restarts\": {\"inventory-5fb6dd8476-fgrhh\": 1, \"order-6589d69896-flkfc\": 0}}",
+      "severity": "info",
+      "ko": "수집 당시의 원천 지표입니다. 누락된 지표는 정상으로 판정하지 않습니다.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E7_error_logs#1",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:03.513743764Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=widget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#3",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:02.849575806Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-6\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=b attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#5",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:02.197805180Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=a attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#7",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:01.569528972Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-7\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=gadget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#9",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:00.948337471Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-8\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=widget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#11",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:02:00.322537513Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-5\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=b attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#13",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:59.692897846Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-4\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=a attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#15",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:59.073419304Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-9\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=gadget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#17",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:58.448273512Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-1\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=widget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#19",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:57.816229678Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-10\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=b attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#21",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:57.186748303Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-3\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=a attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#22",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[inventory] Picked up JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#23",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[inventory] [2026-10-11T12:01:56.634Z] \"GET /api/stock/gadget HTTP/1.1\" 503 URX,UF upstream_reset_before_response_started{remote_connection_failure|delayed_connect_error:_Connection_refused} - \"delayed_connect_error:_Connection_refused\" 0 121 8 - \"-\" \"Java/21.0.12.1\" \"e943a993-3427-4fd9-8594-0d7ec341c59c\" \"inventory.liveprobe-target.svc:8080\" \"10.42.0.27:8080\" inbound|8080|| - 10.42.0.27:8080 10.42.0.25:34998",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#24",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[inventory] [2026-10-11T12:01:56.484Z] \"GET /api/stock/gadget HTTP/1.1\" 503 URX,UF upstream_reset_before_response_started{remote_connection_failure|delayed_connect_error:_Connection_refused} - \"delayed_connect_error:_Connection_refused\" 0 121 37 - \"-\" \"Java/21.0.12.1\" \"04d73dad-2f5d-43d2-9d1d-f752872c608f\" \"inventory.liveprobe-target.svc:8080\" \"10.42.0.27:8080\" inbound|8080|| - 10.42.0.27:8080 10.42.0.25:3499",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "E7_error_logs#26",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:02:06.052329Z",
+      "raw": "[order] {\"@timestamp\":\"2026-10-11T12:01:56.529576928Z\",\"log\":{\"level\":\"WARN\",\"logger\":\"io.liveprobe.target.order.OrderController\"},\"process\":{\"pid\":1,\"thread\":{\"name\":\"http-nio-8080-exec-2\"}},\"service\":{\"name\":\"order\",\"version\":\"0.1.0\",\"node\":{}},\"message\":\"inventory call retry item=gadget attempt=1 error=ServiceUnavailable\",\"ecs\":{\"version\":\"8.11\"}}\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": [
+        "k8s_log_analyst",
+        "cause_reasoner",
+        "challenger",
+        "recovery_planner",
+        "group_verifier"
+      ]
+    },
+    {
+      "id": "agent:4095",
+      "ref": "agent:router",
+      "kind": "agent",
+      "source": "agent:router",
+      "at": "2026-10-11T12:02:11.550253Z",
+      "raw": "The workload has a confirmed OOM crash loop, zero ready endpoints, and a failing dependent caller. Although there was a recent rollout, two workloads are affected and no previous revision is available to establish a clear recovery path, so this is not a bounded OOM/latency case.",
+      "severity": "info",
+      "ko": "메모리 초과 종료와 정상 연결 대상 소실이 함께 발생했고 호출 서비스도 영향을 받아 복잡 그룹을 선택했습니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4096",
+      "ref": "agent:k8s_log_analyst",
+      "kind": "agent",
+      "source": "agent:k8s_log_analyst",
+      "at": "2026-10-11T12:02:22.688639Z",
+      "raw": "Inventory is unavailable because its sole pod is CrashLoopBackOff after an OOM kill at the configured 512Mi memory limit. The empty inventory endpoints are causing order's 503 errors.",
+      "severity": "info",
+      "ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4097",
+      "ref": "agent:k8s_log_analyst",
+      "kind": "agent",
+      "source": "agent:k8s_log_analyst",
+      "at": "2026-10-11T12:02:38.783881Z",
+      "raw": "The inventory pod was OOMKilled and is now in CrashLoopBackOff. Inventory has no ready service endpoints, and order logs show calls to inventory failing with “no healthy upstream.”",
+      "severity": "info",
+      "ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4098",
+      "ref": "agent:cause_reasoner",
+      "kind": "agent",
+      "source": "agent:cause_reasoner",
+      "at": "2026-10-11T12:03:04.099264Z",
+      "raw": "The inventory container was OOMKilled with a 512Mi memory limit, then entered CrashLoopBackOff. Its only replica is unready, leaving the inventory Service without ready endpoints and causing order calls to fail. The cause of the memory growth is unknown.",
+      "severity": "info",
+      "ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4099",
+      "ref": "agent:challenger",
+      "kind": "agent",
+      "source": "agent:challenger",
+      "at": "2026-10-11T12:03:33.695818Z",
+      "raw": "The OOM kill, CrashLoopBackOff, and loss of ready inventory endpoints are supported. A startup probe returned 500 before the OOM kill, so the evidence does not establish that memory exhaustion was the original cause of the outage.",
+      "severity": "info",
+      "ko": "메모리 초과 종료는 확인했지만 그 전에 상태 점검이 실패했습니다. 메모리 증가의 근본 원인까지 입증된 것은 아닙니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4100",
+      "ref": "agent:recovery_planner",
+      "kind": "agent",
+      "source": "agent:recovery_planner",
+      "at": "2026-10-11T12:03:38.532651Z",
+      "raw": "Inventory is unavailable because its only container was OOMKilled at the configured 512Mi limit and is now CrashLoopBackOff. Raise the Kubernetes memory limit reversibly to 640Mi, verifying recovery immediately afterward; the underlying memory-growth cause still requires follow-up.",
+      "severity": "info",
+      "ko": "메모리 한도를 512Mi에서 640Mi로 올리고 즉시 복구를 검증합니다. 증가 원인은 별도로 조사해야 합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4101",
+      "ref": "agent:group_verifier",
+      "kind": "agent",
+      "source": "agent:group_verifier",
+      "at": "2026-10-11T12:04:09.386364Z",
+      "raw": "The evidence supports that inventory was OOMKilled at its 512Mi limit and is now CrashLoopBackOff, leaving its sole Service endpoint unavailable and causing order failures. Raising the limit to 640Mi is a bounded, reversible mitigation; the reason for memory growth remains unverified.",
+      "severity": "info",
+      "ko": "메모리 초과 종료와 연결 대상 소실은 근거와 일치합니다. 한도 조정은 되돌릴 수 있는 완화 조치이며 근본 원인은 미확인입니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    }
+  ],
+  "flow": {
+    "nodes": [
+      {
+        "id": "signal",
+        "type": "signal",
+        "label": "메모리 초과 종료 감지",
+        "role": null,
+        "role_ko": "메모리 초과 종료 감지",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 0,
+        "group": null
+      },
+      {
+        "id": "evidence",
+        "type": "evidence",
+        "label": "원천 근거 7건",
+        "role": null,
+        "role_ko": "원천 근거 7건",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 1,
+        "group": null
+      },
+      {
+        "id": "router",
+        "type": "router",
+        "label": "사건 수준 판단",
+        "role": "router",
+        "role_ko": "사건 수준 판단",
+        "job_ko": "원천 근거로 장애 수준과 분석 그룹을 결정합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 16237,
+          "out": 83
+        },
+        "cost_usd": 0.001665,
+        "duration_ms": 5312,
+        "inputs": [],
+        "conclusion_ko": "메모리 초과 종료와 정상 연결 대상 소실이 함께 발생했고 호출 서비스도 영향을 받아 복잡 그룹을 선택했습니다.",
+        "conclusion_raw": "The workload has a confirmed OOM crash loop, zero ready endpoints, and a failing dependent caller. Although there was a recent rollout, two workloads are affected and no previous revision is available to establish a clear recovery path, so this is not a bounded OOM/latency case.",
+        "lane": 0,
+        "depth": 2,
+        "group": null
+      },
+      {
+        "id": "group",
+        "type": "group",
+        "label": "복잡 그룹 선택",
+        "role": null,
+        "role_ko": "복잡 그룹 선택",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 3,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4096",
+        "type": "agent",
+        "label": "쿠버네티스·로그 분석",
+        "role": "k8s_log_analyst",
+        "role_ko": "쿠버네티스·로그 분석",
+        "job_ko": "쿠버네티스 상태와 오류 로그를 함께 분석합니다.",
+        "status": "escalated",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "tokens": {
+          "in": 18911,
+          "out": 618
+        },
+        "cost_usd": 0.045238,
+        "duration_ms": 10569,
+        "inputs": [
+          "E2_pods",
+          "E1_deployment",
+          "E3_service",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+        "conclusion_raw": "Inventory is unavailable because its sole pod is CrashLoopBackOff after an OOM kill at the configured 512Mi memory limit. The empty inventory endpoints are causing order's 503 errors.",
+        "lane": 0,
+        "depth": 4,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4097",
+        "type": "agent",
+        "label": "쿠버네티스·로그 분석",
+        "role": "k8s_log_analyst",
+        "role_ko": "쿠버네티스·로그 분석",
+        "job_ko": "쿠버네티스 상태와 오류 로그를 함께 분석합니다.",
+        "status": "done",
+        "model": "gpt-6-sol",
+        "effort": "medium",
+        "tokens": {
+          "in": 19359,
+          "out": 785
+        },
+        "cost_usd": 0.046568,
+        "duration_ms": 15978,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E3_service",
+          "E5_recent_events",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+        "conclusion_raw": "The inventory pod was OOMKilled and is now in CrashLoopBackOff. Inventory has no ready service endpoints, and order logs show calls to inventory failing with “no healthy upstream.”",
+        "lane": 1,
+        "depth": 4,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4098",
+        "type": "agent",
+        "label": "원인 추론",
+        "role": "cause_reasoner",
+        "role_ko": "원인 추론",
+        "job_ko": "여러 원인 후보와 근거를 비교합니다.",
+        "status": "done",
+        "model": "gpt-6-sol",
+        "effort": "high",
+        "tokens": {
+          "in": 20038,
+          "out": 1631
+        },
+        "cost_usd": 0.056386,
+        "duration_ms": 25081,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E3_service",
+          "E5_recent_events",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "유일한 컨테이너가 512Mi 한도에서 메모리 초과로 종료되어 반복 재시작 중입니다. 준비된 연결 대상이 없어 주문 서비스의 호출도 실패했습니다.",
+        "conclusion_raw": "The inventory container was OOMKilled with a 512Mi memory limit, then entered CrashLoopBackOff. Its only replica is unready, leaving the inventory Service without ready endpoints and causing order calls to fail. The cause of the memory growth is unknown.",
+        "lane": 0,
+        "depth": 5,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4099",
+        "type": "agent",
+        "label": "반론 검토",
+        "role": "challenger",
+        "role_ko": "반론 검토",
+        "job_ko": "반대 근거로 결론의 약점을 확인합니다.",
+        "status": "done",
+        "model": "gpt-6-sol",
+        "effort": "high",
+        "tokens": {
+          "in": 20091,
+          "out": 1681
+        },
+        "cost_usd": 0.056992,
+        "duration_ms": 29482,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E3_service",
+          "E5_recent_events",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "메모리 초과 종료는 확인했지만 그 전에 상태 점검이 실패했습니다. 메모리 증가의 근본 원인까지 입증된 것은 아닙니다.",
+        "conclusion_raw": "The OOM kill, CrashLoopBackOff, and loss of ready inventory endpoints are supported. A startup probe returned 500 before the OOM kill, so the evidence does not establish that memory exhaustion was the original cause of the outage.",
+        "lane": 0,
+        "depth": 6,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4100",
+        "type": "agent",
+        "label": "복구 계획",
+        "role": "recovery_planner",
+        "role_ko": "복구 계획",
+        "job_ko": "복구 방법과 되돌릴 수 있는 조치를 계획합니다.",
+        "status": "done",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "tokens": {
+          "in": 19686,
+          "out": 977
+        },
+        "cost_usd": 0.051096,
+        "duration_ms": 34304,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E3_service",
+          "E5_recent_events",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "메모리 한도를 512Mi에서 640Mi로 올리고 즉시 복구를 검증합니다. 증가 원인은 별도로 조사해야 합니다.",
+        "conclusion_raw": "Inventory is unavailable because its only container was OOMKilled at the configured 512Mi limit and is now CrashLoopBackOff. Raise the Kubernetes memory limit reversibly to 640Mi, verifying recovery immediately afterward; the underlying memory-growth cause still requires follow-up.",
+        "lane": 1,
+        "depth": 6,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "run:4101",
+        "type": "verify",
+        "label": "독립 결과 확인",
+        "role": "group_verifier",
+        "role_ko": "독립 결과 확인",
+        "job_ko": "그룹의 결론과 인용을 독립적으로 검증합니다.",
+        "status": "done",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "tokens": {
+          "in": 19884,
+          "out": 845
+        },
+        "cost_usd": 0.049908,
+        "duration_ms": 30757,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E3_service",
+          "E7_error_logs"
+        ],
+        "conclusion_ko": "메모리 초과 종료와 연결 대상 소실은 근거와 일치합니다. 한도 조정은 되돌릴 수 있는 완화 조치이며 근본 원인은 미확인입니다.",
+        "conclusion_raw": "The evidence supports that inventory was OOMKilled at its 512Mi limit and is now CrashLoopBackOff, leaving its sole Service endpoint unavailable and causing order failures. Raising the limit to 640Mi is a bounded, reversible mitigation; the reason for memory growth remains unverified.",
+        "lane": 0,
+        "depth": 7,
+        "group": "COMPLEX"
+      },
+      {
+        "id": "action:90",
+        "type": "action",
+        "label": "메모리 한도 조정",
+        "role": null,
+        "role_ko": "메모리 한도 조정",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": "조치를 실행한 뒤 복구 검증을 통과했습니다.",
+        "conclusion_raw": "set_memory_limit → succeeded",
+        "lane": 0,
+        "depth": 8,
+        "group": null
+      },
+      {
+        "id": "outcome",
+        "type": "outcome",
+        "label": "자동 복구 완료",
+        "role": null,
+        "role_ko": "자동 복구 완료",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 9,
+        "group": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "signal>evidence:flow",
+        "source": "signal",
+        "target": "evidence",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "evidence>router:flow",
+        "source": "evidence",
+        "target": "router",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "router>group:flow",
+        "source": "router",
+        "target": "group",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4096>run:4097:escalate",
+        "source": "run:4096",
+        "target": "run:4097",
+        "kind": "escalate",
+        "label": "상위 모델 승격"
+      },
+      {
+        "id": "group>run:4096:flow",
+        "source": "group",
+        "target": "run:4096",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4097>run:4098:flow",
+        "source": "run:4097",
+        "target": "run:4098",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4098>run:4099:flow",
+        "source": "run:4098",
+        "target": "run:4099",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4098>run:4100:flow",
+        "source": "run:4098",
+        "target": "run:4100",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4099>run:4101:flow",
+        "source": "run:4099",
+        "target": "run:4101",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4100>run:4101:flow",
+        "source": "run:4100",
+        "target": "run:4101",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4101>action:90:flow",
+        "source": "run:4101",
+        "target": "action:90",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "action:90>outcome:flow",
+        "source": "action:90",
+        "target": "outcome",
+        "kind": "flow",
+        "label": null
+      }
+    ]
+  },
+  "interpreting": false
+}

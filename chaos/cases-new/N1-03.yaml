@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N1-03",
+  "family": "image_crash",
+  "target": "order",
+  "injection": {
+    "mode": "bad_image",
+    "parameters": {
+      "tag": "liveprobe/order:does-not-exist-19"
+    }
+  },
+  "expected_signal": "image_pull",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "simple",
+  "ground_truth": {
+    "cause": "order: deployment rolled to an image tag that cannot be pulled",
+    "expected_response": "roll the Deployment back to the previous revision and verify rollout",
+    "decoy_signal": "inventory pod restarts from earlier tests",
+    "evidence_sufficiency": "sufficient"
+  }
+}

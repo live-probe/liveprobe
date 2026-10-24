@@ -1,0 +1,42 @@
+# KAN-96 §3: the only NetworkPolicy additions for the chaos overlay (order -> dedicated order_app DB).
+# No new ingress to the fault routes: they are loopback-only in-app and reached via pod port-forward.
+# The base `allow-same-namespace` already permits loadgen -> order -> inventory.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-order-ingress
+  namespace: liveprobe-system
+  labels:
+    liveprobe.io/chaos-overlay: "true"
+spec:
+  podSelector:
+    matchLabels: {app: postgres}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: liveprobe-target}
+          podSelector:
+            matchLabels: {app: order}
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: order-postgres-egress
+  namespace: liveprobe-target
+  labels:
+    liveprobe.io/chaos-overlay: "true"
+spec:
+  podSelector:
+    matchLabels: {app: order}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: liveprobe-system}
+          podSelector:
+            matchLabels: {app: postgres}
+      ports:
+        - {protocol: TCP, port: 5432}

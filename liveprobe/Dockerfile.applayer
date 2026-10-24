@@ -1,0 +1,12 @@
+# App-layer image for fast iteration: the dependency/runtime layers come from liveprobe/liveprobe:p10-base
+# (built from ./Dockerfile); only the Python application code and the pinned Codex CLI are replaced.
+# A clean full build still uses ./Dockerfile (keep the Codex version below equal to it).
+FROM node:22-bookworm-slim AS codex
+RUN npm install -g @openai/codex@0.163.0
+
+FROM liveprobe/liveprobe:p10-base
+RUN rm -rf /usr/local/lib/node_modules/@openai/codex
+COPY --from=codex /usr/local/lib/node_modules/@openai/codex /usr/local/lib/node_modules/@openai/codex
+RUN codex --version
+COPY app/ /app/app/
+COPY reference/ /app/reference/

@@ -1,0 +1,60 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Local Rancher Desktop (K3s) overlay: Traefik ingress, local-path storage, *.localhost hosts,
+# locally built images (no registry; the K3s kubelet shares the docker image store).
+# Environment values live in platform.yaml and are wired in by deploy/components/platform.
+#
+# KAN-111: every image of a KAN-103 object is digest-pinned (image ID of the local docker store,
+# `docker image inspect <ref> --format '{{json .RepoDigests}}'`). The rollback controller only
+# restores the exact inventory/order digests recorded in an operator-owned immutable ConfigMap.
+# For a new build rotate the policy name AND update the two controller refs together; never
+# recreate an immutable policy under its old name (kubelet may keep serving cached values).
+# The webhook caBundle is injected once with
+# `kubectl patch` after apply (never stored here); client-side `kubectl apply` of this overlay
+# leaves that field alone, a server-side/replace apply would blank it and the controller's
+# patches would then fail closed until the CA is re-injected (docs/evidence/KAN-111/).
+resources:
+  - ../../base
+  - platform.yaml
+  - rollback-image-policy-kan119.yaml
+
+# Rancher-only policy; base and portable-example keep their operator-provisioned refs.
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: rollback-controller
+      namespace: liveprobe-system
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/valueFrom/configMapKeyRef/name
+        value: rollback-image-policy-kan119
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/valueFrom/configMapKeyRef/name
+        value: rollback-image-policy-kan119
+
+components:
+  - ../../components/platform
+
+images:
+  - name: liveprobe/liveprobe
+    newName: liveprobe/liveprobe
+    digest: sha256:434e6311c4f41d57fe8ec18b4c55f22b8d3e1b47ba4f43e25b4abfa741e66ff7
+  - name: liveprobe/rollback-controller
+    newName: liveprobe/rollback-controller
+    digest: sha256:f736c5bf800a9c97403f6cc22b79f17c12b4daa4c04a59d90c5c617021ac0256
+  - name: busybox
+    newName: busybox
+    digest: sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+  - name: liveprobe/dashboard
+    newName: liveprobe/dashboard
+    digest: sha256:f34b3a2ec13ffe469f970904c14d51a77e210dfe5417760a2704ca56eddacec5
+  # KAN-119: locally imported multi-arch OCI indexes with pool-release eviction.
+  # Previous KAN-118: order e283ead7..., inventory e98135e4... (no registry push).
+  - name: liveprobe/order
+    newName: liveprobe/order
+    digest: sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec
+  - name: liveprobe/inventory
+    newName: liveprobe/inventory
+    digest: sha256:62a2889b1794c81cea4ddd72260b5f5c20ec64ce1741429d62c114ed363e4edf

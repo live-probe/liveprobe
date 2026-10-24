@@ -1,0 +1,21 @@
+{
+  "label_version": 1,
+  "status": "approved",
+  "approved_on": "2026-10-11",
+  "approval_ref": "delegated by user 2026-10-11 ('허가할게. 진행하자'); policy C labels",
+  "digest": "sha256 of canonical JSON {reference_workflow, ground_truth} (sort_keys, UTF-8)",
+  "cases": {
+    "N1-01": "4f77cfb79f016ff76f84c14fd57143597139b8982de3fd943c618dfd2f00ec90",
+    "N1-02": "f6c9fd4dca92741aba43154b319f433368b6ab4383c073392153486cd017ec06",
+    "N1-03": "f82bacc20a33d29387731a8ef66e3b3f24bd3cf17118bd89a1ef600dba3165d6",
+    "N2-01": "debd52c2510106f1f0602c69ce395a2e5c3386d78319d8221cdbda1a96184e98",
+    "N2-02": "39ea6ce62a3bb90e3c5a9deed47516c6f7c5968f3161fca2d70976df554d496e",
+    "N2-03": "a194cde1c4db21a0e3954a527567eb27ec8ccb14e9a07a977400a0487d2d5f53",
+    "N3-01": "ef0b9ef7d828d2a7a4046a868996aa3e39df9d13a7c7bafeab1ebaf087773e8c",
+    "N3-02": "2ea557b8d01afd323d90358047f3b9297e68eb6ca46e26e437c683307de17885",
+    "N3-03": "9b38b3845c9b2f7f7895ffe1bcc07f9a04c40237367dd34e924f83a6424aafb9",
+    "N4-01": "f9defac9a8ae8442615b1095690bd232b825fec27dc6c698867c68b26721472b",
+    "N4-02": "de8e4adb67dde7dcf3cf9f6f9f12258f4bad209f42ee0ea209c24c44684d7080",
+    "N4-03": "d66bcd415e224246f690469d9acc039c212a6b00ebde839d51402dd037880a9d"
+  }
+}

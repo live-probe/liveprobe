@@ -1,0 +1,19 @@
+# Platform parameters for the Rancher Desktop (K3s) overlay. Local-config only: consumed by
+# deploy/components/platform at render time and never applied to the cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: liveprobe-platform
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  ingressClassName: traefik
+  storageClassName: local-path
+  liveprobeHost: liveprobe.localhost
+  grafanaHost: grafana.localhost
+  ingressNamespace: kube-system
+  ingressPodName: traefik
+  # K3s API server endpoint behind Service kubernetes.default (node address of the Lima VM).
+  apiserverCIDR: 192.168.64.3/32
+  # K3s kubelet InternalIP; keep in sync with the scoped observability overlay.
+  nodeCIDR: 192.168.5.15/32

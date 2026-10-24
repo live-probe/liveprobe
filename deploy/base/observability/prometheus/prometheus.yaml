@@ -1,0 +1,413 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: liveprobe-observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: liveprobe-prometheus
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  # KAN-64: kubelet /metrics/cadvisor over :10250 with the ServiceAccount token. The kubelet authorizes
+  # this path as `get nodes/metrics` (webhook authz, KubeletFineGrainedAuthz). Deliberately NOT
+  # nodes/proxy (which would also permit kubelet exec/attach/run) and NOT the API-server node proxy.
+  - apiGroups: [""]
+    resources: ["nodes/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: liveprobe-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: liveprobe-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: liveprobe-observability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: liveprobe-observability
+data:
+  prometheus.yml: |
+    # KAN-64 bounds: every job inherits a 15s interval / 10s timeout and the global label limits below;
+    # a scrape that exceeds its sample_limit or a label limit fails as a whole (up=0) instead of
+    # silently growing the TSDB. Sized for the 2 CPU / 10GiB single-node cluster (2d / 1500MB retention).
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+      label_limit: 20
+      label_name_length_limit: 64
+      label_value_length_limit: 256
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ["alertmanager.liveprobe-observability.svc:9093"]
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+    scrape_configs:
+      - job_name: prometheus
+        sample_limit: 3000
+        static_configs:
+          - targets: ["localhost:9090"]
+      # P15: KSM spans all namespaces (Secret collection remains disabled). Only the series
+      # the plan needs are ingested: pod phase/readiness/restarts/waiting+terminated reasons (Family 1/2),
+      # container limits (Family 2 context), deployment/replicaset replicas and endpoint readiness
+      # (Family 1 no-endpoints), node/namespace health. Everything else KSM exposes is dropped.
+      - job_name: kube-state-metrics
+        sample_limit: 20000
+        static_configs:
+          - targets: ["kube-state-metrics.liveprobe-observability.svc:8080"]
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            action: keep
+            regex: kube_pod_(info|owner|status_phase|status_ready|container_info|container_status_(restarts_total|ready|running|waiting|waiting_reason|terminated|terminated_reason|last_terminated_reason|last_terminated_exitcode)|container_resource_(limits|requests))|kube_deployment_(spec_replicas|status_replicas|status_replicas_(available|unavailable|ready|updated)|status_condition|metadata_generation|status_observed_generation)|kube_replicaset_(owner|spec_replicas|status_ready_replicas)|kube_endpoint_(info|address|ports)|kube_service_info|kube_node_(info|status_(condition|capacity|allocatable))|kube_namespace_status_phase
+      # P15: all namespace pod/container series plus the root cgroup (node CPU/memory).
+      # TLS and nodes/metrics-only authorization remain; retained metric names are bounded.
+      - job_name: kubelet-cadvisor
+        sample_limit: 20000
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        scheme: https
+        metrics_path: /metrics/cadvisor
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            regex: (.+)
+            replacement: $1:10250
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+        metric_relabel_configs:
+          - source_labels: [namespace, id]
+            action: keep
+            regex: ".+;.*|;/"
+          - source_labels: [__name__]
+            action: keep
+            regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|memory_rss|spec_memory_limit_bytes|oom_events_total|last_seen)
+          - regex: name|image
+            action: labeldrop
+      - job_name: kubernetes-pods
+        sample_limit: 5000
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_phase]
+            action: keep
+            regex: Running
+          # Istio rewrites sidecar pods' scrape annotations to the merged 15020 endpoint.
+          # Those Envoy series are collected by envoy-stats (higher label_limit); do not duplicate them.
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: drop
+            regex: "15020"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+      # P15: moved from mesh-prometheus; Istio/Envoy remain, Kiali does not.
+      - job_name: envoy-stats
+        metrics_path: /stats/prometheus
+        sample_limit: 20000
+        label_limit: 60
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            action: keep
+            regex: ".*-envoy-prom"
+          - source_labels: [__meta_kubernetes_pod_phase]
+            action: keep
+            regex: Running
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            action: keep
+            regex: istio_requests_total|istio_request_duration_milliseconds_(bucket|sum|count)
+  # KAN-64 recording rules: plumbing only. They pre-aggregate the measured target series into small,
+  # bounded `liveprobe:*` series (by namespace/app/pod/container) for dashboards and for the later
+  # KAN-66 Family rules. No alert is defined here; KAN-66 owns the 4-Family alerts and thresholds.
+  recording.yml: |
+    groups:
+      - name: liveprobe-target-recording
+        interval: 30s
+        rules:
+          - record: liveprobe:http_server_requests:rate1m
+            expr: |
+              sum by (namespace, app, status) (
+                rate(http_server_requests_seconds_count{namespace="liveprobe-target", app=~"order|inventory"}[1m])
+              )
+          - record: liveprobe:http_server_requests_5xx:ratio_rate1m
+            expr: |
+              sum by (namespace, app) (rate(http_server_requests_seconds_count{namespace="liveprobe-target", app=~"order|inventory", status=~"5.."}[1m]))
+              /
+              sum by (namespace, app) (rate(http_server_requests_seconds_count{namespace="liveprobe-target", app=~"order|inventory"}[1m]))
+          - record: liveprobe:http_server_requests_latency_seconds:avg_rate1m
+            expr: |
+              sum by (namespace, app) (rate(http_server_requests_seconds_sum{namespace="liveprobe-target", app=~"order|inventory", uri!~"/actuator.*"}[1m]))
+              /
+              sum by (namespace, app) (rate(http_server_requests_seconds_count{namespace="liveprobe-target", app=~"order|inventory", uri!~"/actuator.*"}[1m]))
+          - record: liveprobe:hikaricp_connections:utilization
+            expr: |
+              max by (namespace, app, pool) (hikaricp_connections_active{namespace="liveprobe-target"})
+              /
+              max by (namespace, app, pool) (hikaricp_connections_max{namespace="liveprobe-target"})
+          # Per-container ratio where cAdvisor exposes container="..." series; otherwise (live on
+          # rancher-desktop/k3s, KAN-64 evidence 2026-09-27: only pod-level cgroup series, no
+          # container label) fall back to the pod-level ratio for pods without a container series.
+          - record: liveprobe:container_memory_working_set:ratio_limit
+            expr: |
+              (
+                max by (namespace, pod, container) (container_memory_working_set_bytes{namespace="liveprobe-target", container!=""})
+                /
+                max by (namespace, pod, container) (container_spec_memory_limit_bytes{namespace="liveprobe-target", container!=""} > 0)
+              )
+              or on (namespace, pod)
+              (
+                max by (namespace, pod) (container_memory_working_set_bytes{namespace="liveprobe-target", container=""})
+                /
+                max by (namespace, pod) (container_spec_memory_limit_bytes{namespace="liveprobe-target", container=""} > 0)
+              )
+          - record: liveprobe:kube_pod_container_restarts:increase5m
+            expr: |
+              sum by (namespace, pod, container) (
+                increase(kube_pod_container_status_restarts_total{namespace="liveprobe-target"}[5m])
+              )
+          - record: liveprobe:kube_deployment_replicas_unavailable
+            expr: |
+              max by (namespace, deployment) (kube_deployment_status_replicas_unavailable{namespace="liveprobe-target"})
+  alerts.yml: |
+    groups:
+      - name: liveprobe-target
+        rules:
+          - alert: TargetWorkloadImagePullFailing
+            expr: |
+              max by (namespace, pod, container, reason) (
+                kube_pod_container_status_waiting_reason{namespace="liveprobe-target", reason=~"ImagePullBackOff|ErrImagePull"}
+              ) > 0
+            # Fast automatic rollback can clear the bad image before a 30s pending window.
+            for: 0s
+            labels:
+              severity: warning
+            annotations:
+              summary: "Container {{ $labels.container }} in {{ $labels.pod }} cannot pull its image ({{ $labels.reason }})"
+          - alert: TargetServiceNoEndpoints
+            expr: |
+              (
+                count by (namespace, endpoint) (kube_endpoint_info{namespace="liveprobe-target"})
+                unless
+                count by (namespace, endpoint) (kube_endpoint_address{namespace="liveprobe-target", ready="true"})
+              )
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service {{ $labels.endpoint }} has no ready endpoints"
+          - alert: OrderHigh5xxRate
+            expr: |
+              sum by (namespace, app) (
+                rate(http_server_requests_seconds_count{namespace="liveprobe-target", app="order", status=~"5.."}[1m])
+              ) > 0.1
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "order is returning 5xx ({{ $value | printf \"%.2f\" }}/s)"
+          - alert: TargetWorkloadCrashLooping
+            expr: |
+              max by (namespace, pod, container) (
+                kube_pod_container_status_waiting_reason{namespace="liveprobe-target", reason="CrashLoopBackOff"}
+              ) > 0
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Container {{ $labels.container }} in {{ $labels.pod }} is crash-looping"
+          - alert: TargetWorkloadOOMKilled
+            expr: |
+              max by (namespace, pod, container) (
+                kube_pod_container_status_last_terminated_reason{namespace="liveprobe-target", reason="OOMKilled"}
+              ) > 0
+            # The bounded chaos OOM window is 6–20s; a 30s pending period can miss it.
+            # Alert only on Kubernetes' explicit OOMKilled reason, never a generic JVM exit.
+            for: 0s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Container {{ $labels.container }} in {{ $labels.pod }} was OOMKilled"
+          - alert: TargetHighLatency
+            expr: |
+              liveprobe:http_server_requests_latency_seconds:avg_rate1m{namespace="liveprobe-target", app=~"order|inventory"} > 0.5
+            # Authenticated target faults expire after at most 30s; another 30s pending would miss them.
+            for: 0s
+            labels:
+              severity: warning
+            annotations:
+              summary: "{{ $labels.app }} mean request latency exceeded 500ms"
+          - alert: TargetConnectionPoolExhausted
+            expr: |
+              liveprobe:hikaricp_connections:utilization{namespace="liveprobe-target", app="inventory"} >= 0.95
+            for: 0s
+            labels:
+              severity: critical
+            annotations:
+              summary: "{{ $labels.app }} database connection pool is exhausted"
+          - alert: InventoryHigh5xxRate
+            expr: |
+              sum by (namespace, app) (
+                rate(http_server_requests_seconds_count{namespace="liveprobe-target", app="inventory", status=~"5.."}[1m])
+              ) > 0.1
+            for: 0s
+            labels:
+              severity: critical
+            annotations:
+              summary: "inventory is returning 5xx ({{ $value | printf \"%.2f\" }}/s)"
+---
+# KAN-64: Prometheus -> kubelet :10250 only. Additive to the shared `prometheus` NetworkPolicy
+# (deploy/base/network). The node address block is environment specific: the base value 0.0.0.0/32
+# matches nothing (fail closed) until an overlay patches spec.egress.0.to.0.ipBlock.cidr.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-kubelet-egress
+  namespace: liveprobe-observability
+  labels: {liveprobe.io/egress: kubelet}
+spec:
+  podSelector:
+    matchLabels: {app: prometheus}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: {cidr: 0.0.0.0/32}
+      ports:
+        - {protocol: TCP, port: 10250}
+        # P15: hostNetwork retina-agent metrics on the same node address only.
+        - {protocol: TCP, port: 10093}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: liveprobe-observability
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: liveprobe-observability
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        runAsNonRoot: true
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.15.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=2d
+            - --storage.tsdb.retention.size=1500MB
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+            - name: config
+              mountPath: /etc/prometheus/rules/alerts.yml
+              subPath: alerts.yml
+            - name: config
+              mountPath: /etc/prometheus/rules/recording.yml
+              subPath: recording.yml
+            - name: data
+              mountPath: /prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: liveprobe-observability
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090

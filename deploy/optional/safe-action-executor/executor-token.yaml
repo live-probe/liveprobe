@@ -1,0 +1,12 @@
+# Long-lived token Secret for the safe-action-executor ServiceAccount (the API pod cannot mint another SA's token).
+# The token is populated by the control plane; this file contains no secret value. It is mounted ONLY into the
+# liveprobe-api container, whose own SA remains read-only. Blast radius is bounded by the Roles above plus the
+# safe-action-executor-bounds admission policy (replicas 1..2, memory 256..768Mi, restart annotation, controller-owned Pods).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: safe-action-executor-token
+  namespace: liveprobe-system
+  annotations:
+    kubernetes.io/service-account.name: safe-action-executor
+type: kubernetes.io/service-account-token

@@ -1,0 +1,17 @@
+{
+  "scale": {
+    "plan": {"summary_ko":"주문 서비스의 목표 파드 수를 1개에서 2개로 조정합니다.","operations":[{"op":"scale","apiVersion":"apps/v1","kind":"Deployment","namespace":"liveprobe-target","name":"order","replicas":2}]},
+    "dry_run":[{"op_index":0,"ok":true,"diff":[{"path":"/spec/replicas","before":1,"after":2}],"error":null}],
+    "side_effects":{"items_ko":["파드 1개를 추가로 생성합니다.","추가 CPU와 메모리를 사용합니다."],"targets":["liveprobe-target/Deployment/order"],"restarts":false,"downtime":"none","reversible":true,"rollback_ko":"목표 파드 수를 이전 값인 1개로 되돌립니다.","cluster_wide":false,"warnings_ko":["클러스터의 여유 자원이 부족하면 새 파드가 대기할 수 있습니다."]}
+  },
+  "cluster": {
+    "plan":{"summary_ko":"지정한 노드에 새 파드가 배치되지 않도록 차단합니다.","operations":[{"op":"cordon","apiVersion":"v1","kind":"Node","name":"lima-rancher-desktop"}]},
+    "dry_run":[{"op_index":0,"ok":true,"diff":[{"path":"/spec/unschedulable","before":false,"after":true}],"error":null}],
+    "side_effects":{"items_ko":["모든 네임스페이스의 새 파드 배치에 영향을 줍니다.","기존 파드는 계속 실행하지만 새 파드는 대기할 수 있습니다."],"targets":["Node/lima-rancher-desktop"],"restarts":false,"downtime":"possible","reversible":true,"rollback_ko":"노드의 배치 차단을 해제합니다.","cluster_wide":true,"warnings_ko":["단일 노드 환경에서는 새 파드를 배치할 수 없게 됩니다."]}
+  },
+  "secret": {
+    "plan":{"summary_ko":"접속 설정의 지정된 비밀키를 운영자가 직접 입력한 값으로 바꿉니다.","operations":[{"op":"secret_update","apiVersion":"v1","kind":"Secret","namespace":"liveprobe-target","name":"database-credentials","keys":["DB_PASSWORD","DB_USER"]}]},
+    "dry_run":[{"op_index":0,"ok":true,"diff":[{"path":"/data/DB_PASSWORD","before":"기존 값 미조회","after":"운영자 직접 입력"},{"path":"/data/DB_USER","before":"기존 값 미조회","after":"운영자 직접 입력"}],"error":null}],
+    "side_effects":{"items_ko":["데이터베이스 접속 자격 정보가 바뀝니다.","이전 값은 읽지 않으므로 자동 원복할 수 없습니다."],"targets":["liveprobe-target/Secret/database-credentials"],"restarts":false,"downtime":"possible","reversible":false,"rollback_ko":"원복하려면 운영자가 이전 값을 다시 직접 입력해야 합니다.","cluster_wide":false,"warnings_ko":["값은 AI나 기록에 전달하지 않습니다. 앱의 설정 재적재가 필요할 수 있습니다."]}
+  }
+}

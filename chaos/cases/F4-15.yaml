@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "F4-15",
+  "family": "endpoint_loss",
+  "target": "order",
+  "injection": {
+    "mode": "selector_mismatch",
+    "parameters": {
+      "selector_value": "order-broken-15"
+    }
+  },
+  "expected_signal": "no_endpoints",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "high_risk_handoff",
+  "ground_truth": {
+    "cause": "order: Service selector does not match workload labels (selector_mismatch, {'selector_value': 'order-broken-15'})",
+    "expected_response": "operator handoff; inspect Service selector and Endpoints; restore snapshot",
+    "decoy_signal": "historical warning event",
+    "evidence_sufficiency": "insufficient"
+  }
+}

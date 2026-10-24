@@ -1,0 +1,5 @@
+{
+  "note": "sha256 of each judgement guide version that passed evaluation/guide_leak_check.py. Only these exact bytes are indexed.",
+  "guides": {"liveprobe-judgement-guide.md": "2fa8005bbb1869394e93fb0d3cb855bc0dcee4b9efb20edfafeeb0f17e7d90ea"},
+  "leak_check": {"catalogs": ["chaos/cases"], "held_out": [], "checked_at": "2026-10-11"}
+}

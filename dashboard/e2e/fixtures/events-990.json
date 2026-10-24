@@ -1,0 +1,192 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "kind": "evidence_collected",
+      "actor": "liveprobe",
+      "summary": "근거 8건 수집",
+      "detail": {
+        "errors": [
+          {
+            "error": "HTTPStatusError: Client error '400 Bad Request' for url 'http://loki.liveprobe-observability.svc:3100/loki/api/v1/query_range?query=%7Bnamespace%3D%22liveprobe-",
+            "source": "loki"
+          }
+        ],
+        "sources": [
+          "configmap",
+          "deployment",
+          "k8s_event",
+          "loki",
+          "node",
+          "pod_status",
+          "prometheus",
+          "service"
+        ]
+      },
+      "at": "2026-10-18T13:45:22.101156Z"
+    },
+    {
+      "seq": 2,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "router 시작",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-18T13:45:22.118052Z"
+    },
+    {
+      "seq": 3,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "router 완료",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.98,
+        "duration_ms": 7135,
+        "agent_run_id": 4230,
+        "input_tokens": 20645,
+        "output_tokens": 66,
+        "root_cause_candidates": []
+      },
+      "at": "2026-10-18T13:45:29.281694Z"
+    },
+    {
+      "seq": 4,
+      "kind": "routing_decided",
+      "actor": "liveprobe",
+      "summary": "사건 수준 HIGH_RISK → high_risk_group",
+      "detail": {
+        "level": "HIGH_RISK",
+        "workflow": "high_risk_group",
+        "rationale": "NetworkDrop: observed dropped/error traffic on a workload path; operator handoff, no automatic action (non-overridable). LLM agrees: The rule engine identifies a NetworkDrop signal, which requires operator handoff without automatic remediation. The workload is otherwise healthy and a recent rollout is present, but that does not override the routing-risk rule.",
+        "confidence": 0.98,
+        "decided_by": "rules+llm"
+      },
+      "at": "2026-10-18T13:45:29.294292Z"
+    },
+    {
+      "seq": 5,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "evidence_curator 시작",
+      "detail": {
+        "role": "evidence_curator",
+        "model": "gpt-6-astra",
+        "effort": "high"
+      },
+      "at": "2026-10-18T13:45:29.378528Z"
+    },
+    {
+      "seq": 6,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "HIGH_RISK handoff: NetworkDrop is reported for liveprobe-target/p14-net-sink, but the failing network path and cause are unverified. Observed scope is one workload with one Ready pod; no failing callers are identified. Wider impact is unknown because traffic, latency, Service details, and application logs are insufficient.",
+      "detail": {
+        "role": "evidence_curator",
+        "model": "gpt-6-astra",
+        "effort": "high",
+        "status": "succeeded",
+        "confidence": 0.3,
+        "duration_ms": 24557,
+        "agent_run_id": 4231,
+        "input_tokens": 18018,
+        "output_tokens": 817,
+        "root_cause_candidates": [
+          {
+            "cause": "Network policy, DNS, or network-path failure affecting the workload; plausible from the NetworkDrop signal but unsupported by direct connectivity evidence.",
+            "confidence": 0.3,
+            "evidence_refs": [
+              "E2_pods",
+              "E3_service",
+              "E4_callers",
+              "E6_metrics",
+              "R1"
+            ]
+          },
+          {
+            "cause": "Image or configuration issue introduced during initial deployment; timing is suggestive, but no failing application behavior or configuration difference is established.",
+            "confidence": 0.25,
+            "evidence_refs": [
+              "E1_deployment",
+              "E5_recent_events",
+              "E9_config",
+              "R2"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-18T13:45:53.967461Z"
+    },
+    {
+      "seq": 7,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "safety_verifier 시작",
+      "detail": {
+        "role": "safety_verifier",
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      },
+      "at": "2026-10-18T13:45:53.981004Z"
+    },
+    {
+      "seq": 8,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "HIGH_RISK operator handoff for incident 990, liveprobe-target/p14-net-sink. The curator correctly recommends handoff: NetworkDrop is reported, but the failing path, cause, and impact are unverified. One pod is Ready; this does not establish caller connectivity. No corrective Kubernetes action is supported, and p14-net-sink is outside the approved Deployment targets.",
+      "detail": {
+        "role": "safety_verifier",
+        "model": "gpt-6-astra",
+        "effort": "xhigh",
+        "status": "succeeded",
+        "confidence": 0.3,
+        "duration_ms": 90550,
+        "agent_run_id": 4232,
+        "input_tokens": 18697,
+        "output_tokens": 3047,
+        "root_cause_candidates": [
+          {
+            "cause": "Possible network policy, DNS, CNI, or routing failure. The alert suggests investigating connectivity, but no failing flow or network fault is demonstrated; R1 provides possibilities rather than incident-specific proof.",
+            "confidence": 0.3,
+            "evidence_refs": [
+              "E2_pods",
+              "E3_service",
+              "E4_callers",
+              "E6_metrics",
+              "E8_node",
+              "R1"
+            ]
+          },
+          {
+            "cause": "Possible image or configuration fault associated with the recent rollout. Timing provides weak support; neither a behavioral regression nor an incorrect configuration is established.",
+            "confidence": 0.2,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods",
+              "E5_recent_events",
+              "E9_config"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-18T13:47:24.559933Z"
+    },
+    {
+      "seq": 9,
+      "kind": "completed",
+      "actor": "liveprobe",
+      "summary": "운영자 인계: HIGH_RISK policy: handoff to operator",
+      "detail": {
+        "outcome": "handed_off"
+      },
+      "at": "2026-10-18T13:47:24.594266Z"
+    }
+  ],
+  "control": "running"
+}

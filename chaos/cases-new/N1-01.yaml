@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N1-01",
+  "family": "image_crash",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_crash",
+    "parameters": {
+      "duration_seconds": 21
+    }
+  },
+  "expected_signal": "crash_loop",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "complex",
+  "ground_truth": {
+    "cause": "order: test-only process crash loop held for 21 s (controlled_crash)",
+    "expected_response": "inspect restart reason and probe failures; operator handoff if the crash persists in new pods",
+    "decoy_signal": "order database pool metrics look idle",
+    "evidence_sufficiency": "sufficient"
+  }
+}

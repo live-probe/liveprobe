@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N2-03",
+  "family": "oom",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_oom",
+    "parameters": {
+      "duration_seconds": 26
+    }
+  },
+  "expected_signal": "oom_killed",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "moderate",
+  "ground_truth": {
+    "cause": "order: repeated OOMKilled while caller traffic is still flowing",
+    "expected_response": "raise the memory limit within the approved bounds; confirm no other workload changes",
+    "decoy_signal": "inventory latency alert in the same window",
+    "evidence_sufficiency": "insufficient"
+  }
+}

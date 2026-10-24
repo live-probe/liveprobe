@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: liveprobe
+  namespace: liveprobe-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: liveprobe-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events", "services", "endpoints", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  # Read-only: the cluster map draws Ingress -> Service routes.
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: liveprobe-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: liveprobe-reader
+subjects:
+  - kind: ServiceAccount
+    name: liveprobe
+    namespace: liveprobe-system
+---
+# P14: configuration evidence is limited to the target namespace; never grant Secret reads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: liveprobe-config-reader
+  namespace: liveprobe-target
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: liveprobe-config-reader
+  namespace: liveprobe-target
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: liveprobe-config-reader
+subjects:
+  - kind: ServiceAccount
+    name: liveprobe
+    namespace: liveprobe-system
+# KAN-103: no target write binding for the LiveProbe API. A separate, admission-
+# guarded rollback controller is required before rollout_undo can execute again.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: liveprobe-config
+  namespace: liveprobe-system
+data:
+  config.yaml: |
+    target_namespace: liveprobe-target
+    dependencies:
+      order: [inventory]
+    llm:
+      # Select codex_cli, claude_cli, openai_api or anthropic_api here.
+      # Leave roles unset to use the provider-specific role/model defaults.
+      # Override a provider with provider_roles.<provider>, not a shared roles map.
+      provider: codex_cli
+      timeout_s: 180
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: liveprobe-codex
+  namespace: liveprobe-system
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 64Mi
+---
+# Spare Codex account home (separate credentials and CLI state from the primary).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: liveprobe-codex-spare
+  namespace: liveprobe-system
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liveprobe-api
+  namespace: liveprobe-system
+  labels: {app: liveprobe-api}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: liveprobe-api}
+  template:
+    metadata:
+      labels: {app: liveprobe-api}
+    spec:
+      serviceAccountName: liveprobe
+      initContainers:
+        - name: seed-codex-auth
+          image: busybox:1.37
+          command: ["sh", "-c", "if [ ! -f /codex/auth.json ] && [ -f /llm/auth.json ]; then cp /llm/auth.json /codex/auth.json; chmod 600 /codex/auth.json; fi"]
+          volumeMounts:
+            - {name: codex, mountPath: /codex}
+            - {name: llm-auth, mountPath: /llm, readOnly: true}
+        # Spare Codex account (optional): own Secret + own CODEX_HOME volume. Absent Secret = single-account mode.
+        - name: seed-codex-auth-spare
+          image: busybox:1.37
+          command: ["sh", "-c", "if [ ! -f /codex-spare/auth.json ] && [ -f /llm-spare/auth.json ]; then cp /llm-spare/auth.json /codex-spare/auth.json; chmod 600 /codex-spare/auth.json; fi"]
+          volumeMounts:
+            - {name: codex-spare, mountPath: /codex-spare}
+            - {name: llm-auth-spare, mountPath: /llm-spare, readOnly: true}
+      containers:
+        - name: api
+          image: liveprobe/liveprobe:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8000}
+          env:
+            - name: LIVEPROBE_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: postgres-credentials, key: password}}
+            - name: LIVEPROBE_WEBHOOK_TOKEN
+              valueFrom: {secretKeyRef: {name: liveprobe-webhook, key: token}}
+            - name: CODEX_HOME
+              value: /var/lib/liveprobe/codex
+            # Set only once the spare account has logged in (scripts/create-secrets.sh --spare); see docs/plans/revamp.
+            - name: LIVEPROBE_CODEX_HOME_SPARE
+              value: /var/lib/liveprobe/codex-spare
+            - name: ROLLBACK_CONTROLLER_URL
+              value: https://rollback-controller.liveprobe-system.svc:443/undo
+          readinessProbe:
+            httpGet: {path: /api/readyz, port: 8000}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet: {path: /api/healthz, port: 8000}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {memory: 1536Mi}
+          volumeMounts:
+            - {name: codex, mountPath: /var/lib/liveprobe/codex}
+            - {name: codex-spare, mountPath: /var/lib/liveprobe/codex-spare}
+            - {name: llm-auth, mountPath: /var/run/secrets/liveprobe-llm, readOnly: true}
+            - {name: config, mountPath: /etc/liveprobe, readOnly: true}
+            - {name: rollback-caller, mountPath: /var/run/secrets/rollback-caller, readOnly: true}
+            - {name: rollback-ca, mountPath: /var/run/rollback-ca, readOnly: true}
+            - {name: rollback-grant, mountPath: /var/run/secrets/rollback-grant, readOnly: true}
+            - {name: safe-action-executor, mountPath: /var/run/secrets/safe-action-executor, readOnly: true}
+            # P15 identities are separate from both the API reader and unattended actions.
+            - {name: operator-executor, mountPath: /var/run/secrets/operator-executor, readOnly: true}
+            - {name: secret-writer, mountPath: /var/run/secrets/secret-writer, readOnly: true}
+      volumes:
+        - name: codex
+          persistentVolumeClaim: {claimName: liveprobe-codex}
+        - name: codex-spare
+          persistentVolumeClaim: {claimName: liveprobe-codex-spare}
+        - name: llm-auth
+          secret: {secretName: liveprobe-llm}
+        - name: llm-auth-spare
+          secret: {secretName: liveprobe-llm-spare, optional: true}
+        - name: config
+          configMap: {name: liveprobe-config}
+        - name: rollback-caller
+          projected:
+            sources:
+              - serviceAccountToken: {path: token, audience: liveprobe-rollback, expirationSeconds: 600}
+        - name: rollback-ca
+          configMap: {name: rollback-ca, items: [{key: ca.crt, path: ca.crt}]}
+        - name: rollback-grant
+          secret: {secretName: rollback-action-grant, items: [{key: key, path: key}]}
+        # Separate write identity for agent-proposed Kubernetes actions; the API's own SA stays read-only.
+        # Needs deploy/optional/safe-action-executor (SA, Roles, admission bounds, token Secret). Without it, optional
+        # keeps the pod starting and typed actions fail closed.
+        - name: safe-action-executor
+          secret: {secretName: safe-action-executor-token, optional: true, items: [{key: token, path: token}]}
+        # Optional lets observation start without write credentials; adapters fail closed
+        # when token files are absent. Never project the API reader token as an executor.
+        - name: operator-executor
+          secret: {secretName: liveprobe-operator-executor-token, optional: true, items: [{key: token, path: token}]}
+        - name: secret-writer
+          secret: {secretName: liveprobe-secret-writer-token, optional: true, items: [{key: token, path: token}]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: liveprobe-api
+  namespace: liveprobe-system
+spec:
+  selector: {app: liveprobe-api}
+  ports:
+    - {name: http, port: 8000, targetPort: 8000}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: liveprobe-api
+  namespace: liveprobe-system
+spec:
+  rules:
+    - host: liveprobe.invalid
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: liveprobe-api
+                port: {number: 8000}

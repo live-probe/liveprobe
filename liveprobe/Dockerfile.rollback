@@ -1,0 +1,7 @@
+FROM python:3.12-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /opt/rollback
+RUN pip install --no-cache-dir 'kubernetes==35.0.0'
+COPY app/__init__.py app/rollback_controller.py app/rollback_grant.py ./app/
+USER 65532:65532
+CMD ["python", "-m", "app.rollback_controller"]

@@ -1,0 +1,122 @@
+# One ServiceAccount, one Role per action class. No Secret, Node, create, list-all-ConfigMaps,
+# exec, logs, cluster-scope or cross-namespace grant. Reads needed for validation (pods,
+# replicasets, deployments) come from the existing observe-only liveprobe-reader identity.
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: safe-action-executor, namespace: liveprobe-system}
+automountServiceAccountToken: false
+---
+# pod_delete: Pod names are generated, so resourceNames cannot pin them; the executor adds
+# uid+resourceVersion delete preconditions and the admission policy below requires ownership labels.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: safe-action-pod-delete, namespace: liveprobe-target}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, delete]
+---
+# rollout_restart / scale_replicas / set_memory_limit: JSON patch of the two named Deployments.
+# (deployments/scale is not granted; replicas change via guarded JSON patch only.)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: safe-action-deployment-patch, namespace: liveprobe-target}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [inventory, order]
+    verbs: [get, patch]
+---
+# configmap_restore: read live + approved immutable version ConfigMaps by name; patch live only.
+# Operators add approved version names here together with safe_actions.configmap_versions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: safe-action-configmap-restore, namespace: liveprobe-target}
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [inventory-config, order-config, inventory-config-v1, order-config-v1]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [inventory-config, order-config]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: safe-action-pod-delete, namespace: liveprobe-target}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: safe-action-pod-delete}
+subjects:
+  - {kind: ServiceAccount, namespace: liveprobe-system, name: safe-action-executor}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: safe-action-deployment-patch, namespace: liveprobe-target}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: safe-action-deployment-patch}
+subjects:
+  - {kind: ServiceAccount, namespace: liveprobe-system, name: safe-action-executor}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: safe-action-configmap-restore, namespace: liveprobe-target}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: safe-action-configmap-restore}
+subjects:
+  - {kind: ServiceAccount, namespace: liveprobe-system, name: safe-action-executor}
+---
+# Defence in depth: RBAC cannot restrict fields, so admission bounds what the executor may change.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata: {name: safe-action-executor-bounds}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - {apiGroups: [apps], apiVersions: [v1], operations: [UPDATE], resources: [deployments], scope: Namespaced}
+      - {apiGroups: [""], apiVersions: [v1], operations: [UPDATE], resources: [configmaps], scope: Namespaced}
+      - {apiGroups: [""], apiVersions: [v1], operations: [DELETE], resources: [pods], scope: Namespaced}
+  matchConditions:
+    - name: executor-only
+      expression: "request.userInfo.username == 'system:serviceaccount:liveprobe-system:safe-action-executor'"
+  validations:
+    - expression: "request.namespace == 'liveprobe-target'"
+      message: "safe-action executor is limited to liveprobe-target"
+    - expression: >-
+        request.resource.resource != 'pods' ||
+        (has(oldObject.metadata.labels) &&
+         oldObject.metadata.labels[?'app.kubernetes.io/part-of'].orValue('') == 'liveprobe-target' &&
+         has(oldObject.metadata.ownerReferences) &&
+         oldObject.metadata.ownerReferences.exists(o, o.kind == 'ReplicaSet' && o.controller == true))
+      message: "only controller-owned target Pods may be deleted"
+    - expression: >-
+        request.resource.resource != 'deployments' ||
+        (object.spec.replicas >= 1 && object.spec.replicas <= 2 &&
+         object.spec.selector == oldObject.spec.selector &&
+         size(object.spec.template.spec.containers) == 1 &&
+         quantity(object.spec.template.spec.containers[0].resources.limits.memory).compareTo(quantity('768Mi')) <= 0 &&
+         quantity(object.spec.template.spec.containers[0].resources.limits.memory).compareTo(quantity('256Mi')) >= 0 &&
+         object.spec.template.spec.containers[0].image == oldObject.spec.template.spec.containers[0].image &&
+         has(object.spec.template.spec.containers[0].env) == has(oldObject.spec.template.spec.containers[0].env) &&
+         (!has(object.spec.template.spec.containers[0].env) ||
+          object.spec.template.spec.containers[0].env == oldObject.spec.template.spec.containers[0].env) &&
+         has(object.spec.template.spec.containers[0].envFrom) == has(oldObject.spec.template.spec.containers[0].envFrom) &&
+         (!has(object.spec.template.spec.containers[0].envFrom) ||
+          object.spec.template.spec.containers[0].envFrom == oldObject.spec.template.spec.containers[0].envFrom) &&
+         has(object.spec.template.spec.volumes) == has(oldObject.spec.template.spec.volumes) &&
+         (!has(object.spec.template.spec.volumes) ||
+          object.spec.template.spec.volumes == oldObject.spec.template.spec.volumes) &&
+         has(object.spec.template.spec.serviceAccountName) == has(oldObject.spec.template.spec.serviceAccountName) &&
+         (!has(object.spec.template.spec.serviceAccountName) ||
+          object.spec.template.spec.serviceAccountName == oldObject.spec.template.spec.serviceAccountName))
+      message: "executor may change only replicas (1..2), memory limit and the restart annotation"
+    - expression: >-
+        request.resource.resource != 'configmaps' ||
+        (object.metadata.labels == oldObject.metadata.labels && !has(object.binaryData) &&
+         (!has(object.immutable) || object.immutable == false))
+      message: "executor may change only ConfigMap data"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata: {name: safe-action-executor-bounds}
+spec:
+  policyName: safe-action-executor-bounds
+  validationActions: [Deny]

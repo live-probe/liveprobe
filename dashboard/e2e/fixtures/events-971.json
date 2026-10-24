@@ -1,0 +1,414 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "kind": "evidence_collected",
+      "actor": "liveprobe",
+      "summary": "근거 7건 수집",
+      "detail": {
+        "errors": [],
+        "sources": [
+          "deployment",
+          "endpoints",
+          "k8s_event",
+          "loki",
+          "pod_status",
+          "prometheus",
+          "service"
+        ]
+      },
+      "at": "2026-10-11T12:02:06.114979Z"
+    },
+    {
+      "seq": 2,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "router 시작",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:02:06.141610Z"
+    },
+    {
+      "seq": 3,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "router 완료",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.85,
+        "duration_ms": 5312,
+        "agent_run_id": 4095,
+        "input_tokens": 16237,
+        "output_tokens": 83,
+        "root_cause_candidates": []
+      },
+      "at": "2026-10-11T12:02:11.649797Z"
+    },
+    {
+      "seq": 4,
+      "kind": "routing_decided",
+      "actor": "liveprobe",
+      "summary": "사건 수준 COMPLEX → complex_group",
+      "detail": {
+        "level": "COMPLEX",
+        "workflow": "complex_group",
+        "rationale": "bounded OOM/latency signal; requires multi-source analysis without automatic action. LLM raised level NORMAL->COMPLEX: The workload has a confirmed OOM crash loop, zero ready endpoints, and a failing dependent caller. Although there was a recent rollout, two workloads are affected and no previous revision is available to establish a clear recovery path, so this is not a bounded OOM/latency case.",
+        "confidence": 0.85,
+        "decided_by": "rules+llm"
+      },
+      "at": "2026-10-11T12:02:11.670604Z"
+    },
+    {
+      "seq": 5,
+      "kind": "group_composed",
+      "actor": "liveprobe",
+      "summary": "group_started: kind=group_started, t_ms=0, group=complex_group, policy_version=v1",
+      "detail": {
+        "kind": "group_started",
+        "t_ms": 0,
+        "group": "complex_group",
+        "policy_version": "v1"
+      },
+      "at": "2026-10-11T12:02:12.020767Z"
+    },
+    {
+      "seq": 6,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "k8s_log_analyst 시작",
+      "detail": {
+        "role": "k8s_log_analyst",
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:02:12.086272Z"
+    },
+    {
+      "seq": 7,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "Inventory is unavailable because its sole pod is CrashLoopBackOff after an OOM kill at the configured 512Mi memory limit. The empty inventory endpoints are causing order's 503 errors.",
+      "detail": {
+        "role": "k8s_log_analyst",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.97,
+        "duration_ms": 10569,
+        "agent_run_id": 4096,
+        "input_tokens": 18911,
+        "output_tokens": 618,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exceeds its verified 512Mi container memory limit, causing OOMKilled and CrashLoopBackOff.",
+            "confidence": 0.98,
+            "evidence_refs": [
+              "E2_pods",
+              "E1_deployment"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:02:22.735051Z"
+    },
+    {
+      "seq": 8,
+      "kind": "escalated",
+      "actor": "liveprobe",
+      "summary": "escalated: kind=escalated, t_ms=10739, role=k8s_log_analyst, reason=1 quote(s) not found in cited sources",
+      "detail": {
+        "kind": "escalated",
+        "role": "k8s_log_analyst",
+        "t_ms": 10739,
+        "reason": "1 quote(s) not found in cited sources",
+        "to_model": "gpt-6-sol",
+        "to_effort": "medium",
+        "from_model": "gpt-5.6-terra",
+        "from_effort": "medium"
+      },
+      "at": "2026-10-11T12:02:22.756069Z"
+    },
+    {
+      "seq": 9,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "k8s_log_analyst 시작",
+      "detail": {
+        "role": "k8s_log_analyst",
+        "model": "gpt-6-sol",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:02:22.774684Z"
+    },
+    {
+      "seq": 10,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The inventory pod was OOMKilled and is now in CrashLoopBackOff. Inventory has no ready service endpoints, and order logs show calls to inventory failing with “no healthy upstream.”",
+      "detail": {
+        "role": "k8s_log_analyst",
+        "model": "gpt-6-sol",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.95,
+        "duration_ms": 15978,
+        "agent_run_id": 4097,
+        "input_tokens": 19359,
+        "output_tokens": 785,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exceeded its configured 512Mi memory limit, causing an OOM kill and loss of the only ready replica. The reason for its memory growth is unknown.",
+            "confidence": 0.96,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods",
+              "E3_service"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:02:38.933720Z"
+    },
+    {
+      "seq": 11,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "cause_reasoner 시작",
+      "detail": {
+        "role": "cause_reasoner",
+        "model": "gpt-6-sol",
+        "effort": "high"
+      },
+      "at": "2026-10-11T12:02:38.992794Z"
+    },
+    {
+      "seq": 12,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The inventory container was OOMKilled with a 512Mi memory limit, then entered CrashLoopBackOff. Its only replica is unready, leaving the inventory Service without ready endpoints and causing order calls to fail. The cause of the memory growth is unknown.",
+      "detail": {
+        "role": "cause_reasoner",
+        "model": "gpt-6-sol",
+        "effort": "high",
+        "status": "succeeded",
+        "confidence": 0.93,
+        "duration_ms": 25081,
+        "agent_run_id": 4098,
+        "input_tokens": 20038,
+        "output_tokens": 1631,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exhausted memory under its configured 512Mi limit. The OOM kill and subsequent CrashLoopBackOff left its sole replica unready; with no ready endpoint, order calls to inventory fail. The reason memory grew remains unverified.",
+            "confidence": 0.94,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods",
+              "E3_service",
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:03:04.123984Z"
+    },
+    {
+      "seq": 13,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "challenger 시작",
+      "detail": {
+        "role": "challenger",
+        "model": "gpt-6-sol",
+        "effort": "high"
+      },
+      "at": "2026-10-11T12:03:04.188678Z"
+    },
+    {
+      "seq": 14,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "recovery_planner 시작",
+      "detail": {
+        "role": "recovery_planner",
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:03:04.203122Z"
+    },
+    {
+      "seq": 15,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The OOM kill, CrashLoopBackOff, and loss of ready inventory endpoints are supported. A startup probe returned 500 before the OOM kill, so the evidence does not establish that memory exhaustion was the original cause of the outage.",
+      "detail": {
+        "role": "challenger",
+        "model": "gpt-6-sol",
+        "effort": "high",
+        "status": "succeeded",
+        "confidence": 0.9,
+        "duration_ms": 29482,
+        "agent_run_id": 4099,
+        "input_tokens": 20091,
+        "output_tokens": 1681,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exceeded its 512Mi memory limit, causing an OOM kill and restart backoff.",
+            "confidence": 0.94,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods"
+            ]
+          },
+          {
+            "cause": "An earlier application startup fault may have made inventory unready before the OOM kill.",
+            "confidence": 0.38,
+            "evidence_refs": [
+              "E5_recent_events"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:03:33.747044Z"
+    },
+    {
+      "seq": 16,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "Inventory is unavailable because its only container was OOMKilled at the configured 512Mi limit and is now CrashLoopBackOff. Raise the Kubernetes memory limit reversibly to 640Mi, verifying recovery immediately afterward; the underlying memory-growth cause still requires follow-up.",
+      "detail": {
+        "role": "recovery_planner",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.91,
+        "duration_ms": 34304,
+        "agent_run_id": 4100,
+        "input_tokens": 19686,
+        "output_tokens": 977,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exhausted its configured 512Mi memory limit, causing OOMKilled and CrashLoopBackOff; this removed its sole ready endpoint and disrupted order requests. The source of memory growth is unverified.",
+            "confidence": 0.95,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods",
+              "E3_service",
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:03:38.564100Z"
+    },
+    {
+      "seq": 17,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "group_verifier 시작",
+      "detail": {
+        "role": "group_verifier",
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:03:38.598497Z"
+    },
+    {
+      "seq": 18,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The evidence supports that inventory was OOMKilled at its 512Mi limit and is now CrashLoopBackOff, leaving its sole Service endpoint unavailable and causing order failures. Raising the limit to 640Mi is a bounded, reversible mitigation; the reason for memory growth remains unverified.",
+      "detail": {
+        "role": "group_verifier",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.91,
+        "duration_ms": 30757,
+        "agent_run_id": 4101,
+        "input_tokens": 19884,
+        "output_tokens": 845,
+        "root_cause_candidates": [
+          {
+            "cause": "Inventory exhausted its configured 512Mi memory limit, was OOMKilled, and its sole replica entered CrashLoopBackOff, removing the inventory Service endpoint and causing order calls to fail. The source of memory growth is unknown.",
+            "confidence": 0.94,
+            "evidence_refs": [
+              "E1_deployment",
+              "E2_pods",
+              "E3_service",
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:04:09.420730Z"
+    },
+    {
+      "seq": 19,
+      "kind": "action_proposed",
+      "actor": "liveprobe",
+      "summary": "조치 제안: set_memory_limit → Deployment/inventory",
+      "detail": {
+        "why": "OOMKilled at the verified 512Mi limit is directly fixable within Kubernetes. Raising to 640Mi is a bounded, reversible increase that preserves the 256Mi request; investigate the application's memory growth separately.",
+        "type": "set_memory_limit",
+        "params": {
+          "memory_limit_mi": 640
+        },
+        "status": "proposed",
+        "action_id": 90
+      },
+      "at": "2026-10-11T12:04:09.526205Z"
+    },
+    {
+      "seq": 20,
+      "kind": "action_proposed",
+      "actor": "liveprobe",
+      "summary": "조치 #90 실행 시작",
+      "detail": {
+        "actor": "liveprobe",
+        "level": "COMPLEX",
+        "action_id": 90
+      },
+      "at": "2026-10-11T12:04:09.538307Z"
+    },
+    {
+      "seq": 21,
+      "kind": "action_executed",
+      "actor": "liveprobe",
+      "summary": "조치 #90 결과: succeeded",
+      "detail": {
+        "reason": "post-verification passed",
+        "status": "succeeded",
+        "action_id": 90
+      },
+      "at": "2026-10-11T12:04:23.162299Z"
+    },
+    {
+      "seq": 22,
+      "kind": "verification_result",
+      "actor": "liveprobe",
+      "summary": "롤아웃 검증 통과",
+      "detail": {
+        "ok": true,
+        "action_id": 90
+      },
+      "at": "2026-10-11T12:04:23.168599Z"
+    },
+    {
+      "seq": 23,
+      "kind": "completed",
+      "actor": "liveprobe",
+      "summary": "해결됨: set_memory_limit succeeded and verified",
+      "detail": {
+        "outcome": "resolved"
+      },
+      "at": "2026-10-11T12:04:23.185279Z"
+    }
+  ],
+  "control": "running"
+}

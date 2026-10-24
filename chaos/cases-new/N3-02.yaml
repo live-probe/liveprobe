@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N3-02",
+  "family": "latency_pool",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_pool_hold",
+    "parameters": {
+      "connections": 5
+    }
+  },
+  "expected_signal": "pool_exhaustion",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "moderate",
+  "ground_truth": {
+    "cause": "order: test-only DB connection pool hold of 5 connections exhausts its pool",
+    "expected_response": "restart the order rollout as mitigation and note the application pool leak",
+    "decoy_signal": "inventory slow responses",
+    "evidence_sufficiency": "sufficient"
+  }
+}

@@ -1,0 +1,639 @@
+# P15: independent, explicit write identities. The API's liveprobe SA and the
+# optional safe-action-executor are unchanged. Apply admission + Deny bindings
+# BEFORE enabling/mounting either token. Admission is not interactive approval:
+# backend plan hash, confirmation state and UID/resourceVersion CAS own that gate.
+# Token Secret values are populated by Kubernetes, never generated/read here.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: liveprobe-operator-executor
+  namespace: liveprobe-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: liveprobe-secret-writer
+  namespace: liveprobe-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: liveprobe-operator-executor-token
+  namespace: liveprobe-system
+  annotations:
+    kubernetes.io/service-account.name: liveprobe-operator-executor
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: liveprobe-secret-writer-token
+  namespace: liveprobe-system
+  annotations:
+    kubernetes.io/service-account.name: liveprobe-secret-writer
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: liveprobe-operator-executor
+# BEGIN GENERATED OPERATOR RULES
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - limitranges
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - resourcequotas
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+# END GENERATED OPERATOR RULES
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: liveprobe-secret-writer
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: liveprobe-operator-executor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: liveprobe-operator-executor
+subjects:
+  - kind: ServiceAccount
+    name: liveprobe-operator-executor
+    namespace: liveprobe-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: liveprobe-secret-writer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: liveprobe-secret-writer
+subjects:
+  - kind: ServiceAccount
+    name: liveprobe-secret-writer
+    namespace: liveprobe-system
+---
+# Catch every mutation by the dedicated identity, including direct-token bypass.
+# Intentionally conservative: storage/Namespace writes and executable changes to
+# existing workloads are denied pending per-resource safety policies. No policy
+# here proves user confirmation; that remains an application-side responsibility.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: liveprobe-operator-boundary
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    matchPolicy: Equivalent
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE, DELETE, CONNECT]
+        resources: ["*/*"]
+  matchConditions:
+    - name: dedicated-identity
+      expression: "request.userInfo.username == 'system:serviceaccount:liveprobe-system:liveprobe-operator-executor'"
+  variables:
+    - name: target
+      expression: "object != null ? object : oldObject"
+    - name: workload
+      expression: >-
+        (request.resource.group == '' && request.resource.resource in ['pods', 'replicationcontrollers']) ||
+        (request.resource.group == 'apps' && request.resource.resource in ['deployments', 'statefulsets', 'daemonsets', 'replicasets']) ||
+        (request.resource.group == 'batch' && request.resource.resource in ['jobs', 'cronjobs'])
+    - name: ps
+      expression: >-
+        !variables.workload || variables.target == null ? {} :
+        request.resource.resource == 'pods' ? variables.target.spec :
+        request.resource.resource == 'cronjobs' ? variables.target.spec.jobTemplate.spec.template.spec : variables.target.spec.template.spec
+    - name: oldPS
+      expression: >-
+        !variables.workload || oldObject == null ? {} :
+        request.resource.resource == 'pods' ? oldObject.spec :
+        request.resource.resource == 'cronjobs' ? oldObject.spec.jobTemplate.spec.template.spec : oldObject.spec.template.spec
+    - name: tm
+      expression: >-
+        !variables.workload || variables.target == null ? {} : request.resource.resource == 'pods' ? variables.target.metadata :
+        request.resource.resource == 'cronjobs' ? (has(variables.target.spec.jobTemplate.spec.template.metadata) ? variables.target.spec.jobTemplate.spec.template.metadata : {}) :
+        (has(variables.target.spec.template.metadata) ? variables.target.spec.template.metadata : {})
+    - name: oldTM
+      expression: >-
+        !variables.workload || oldObject == null ? {} : request.resource.resource == 'pods' ? oldObject.metadata :
+        request.resource.resource == 'cronjobs' ? (has(oldObject.spec.jobTemplate.spec.template.metadata) ? oldObject.spec.jobTemplate.spec.template.metadata : {}) :
+        (has(oldObject.spec.template.metadata) ? oldObject.spec.template.metadata : {})
+    - name: annotations
+      expression: "has(variables.tm.annotations) ? variables.tm.annotations : {}"
+    - name: oldAnnotations
+      expression: "has(variables.oldTM.annotations) ? variables.oldTM.annotations : {}"
+    - name: containers
+      expression: >-
+        (has(variables.ps.containers) ? variables.ps.containers : []) +
+        (has(variables.ps.initContainers) ? variables.ps.initContainers : [])
+    - name: oldContainers
+      expression: >-
+        (has(variables.oldPS.containers) ? variables.oldPS.containers : []) +
+        (has(variables.oldPS.initContainers) ? variables.oldPS.initContainers : [])
+    # Template admission does not run again as this identity when a workload
+    # controller creates Pods. Require an explicit Istio opt-out (even outside
+    # the mesh), automount=false and allowPrivilegeEscalation=false on creation.
+    # Other administrator-installed Pod mutators still require operator review.
+    - name: safePod
+      expression: >-
+        has(variables.ps.automountServiceAccountToken) && variables.ps.automountServiceAccountToken == false &&
+        (!has(variables.ps.serviceAccountName) || variables.ps.serviceAccountName in ['', 'default']) &&
+        (!has(variables.ps.serviceAccount) || variables.ps.serviceAccount in ['', 'default']) &&
+        (!has(variables.ps.imagePullSecrets) || size(variables.ps.imagePullSecrets) == 0) &&
+        (!has(variables.ps.hostNetwork) || !variables.ps.hostNetwork) &&
+        (!has(variables.ps.hostPID) || !variables.ps.hostPID) &&
+        (!has(variables.ps.hostIPC) || !variables.ps.hostIPC) &&
+        !has(variables.ps.ephemeralContainers) && !has(variables.ps.runtimeClassName) && !has(variables.ps.nodeName) &&
+        variables.ps.all(k, k in ['containers', 'initContainers', 'volumes', 'automountServiceAccountToken',
+          'serviceAccountName', 'serviceAccount', 'imagePullSecrets', 'hostNetwork', 'hostPID', 'hostIPC',
+          'restartPolicy', 'terminationGracePeriodSeconds', 'activeDeadlineSeconds', 'dnsPolicy', 'dnsConfig',
+          'hostname', 'subdomain', 'securityContext', 'schedulerName', 'priorityClassName', 'priority',
+          'preemptionPolicy', 'enableServiceLinks', 'affinity', 'tolerations', 'nodeSelector', 'topologySpreadConstraints']) &&
+        (!has(variables.ps.securityContext) || (
+          variables.ps.securityContext.all(k, k in ['runAsUser', 'runAsGroup', 'runAsNonRoot', 'fsGroup', 'fsGroupChangePolicy', 'supplementalGroups', 'seccompProfile']) &&
+          !has(variables.ps.securityContext.sysctls) &&
+          (!has(variables.ps.securityContext.seccompProfile) || variables.ps.securityContext.seccompProfile.type == 'RuntimeDefault'))) &&
+        (!has(variables.ps.volumes) || variables.ps.volumes.all(v,
+          v.all(k, k in ['name', 'emptyDir', 'configMap', 'downwardAPI']) &&
+          (has(v.emptyDir) || has(v.configMap) || has(v.downwardAPI)))) &&
+        variables.annotations.all(k, k == 'liveprobe.io/restarted-at') &&
+        has(variables.tm.labels) && 'sidecar.istio.io/inject' in variables.tm.labels &&
+        variables.tm.labels['sidecar.istio.io/inject'] == 'false' &&
+        variables.tm.labels.all(k,
+          k == 'sidecar.istio.io/inject' && variables.tm.labels[k] == 'false' ||
+          !k.startsWith('pod-security.kubernetes.io/') && !k.contains('inject') && !k.contains('istio') && !k.startsWith('liveprobe.io/')) &&
+        variables.containers.all(c,
+          c.all(k, k in ['name', 'image', 'imagePullPolicy', 'command', 'args', 'workingDir', 'ports', 'env', 'envFrom',
+            'resources', 'volumeMounts', 'securityContext', 'livenessProbe', 'readinessProbe', 'startupProbe', 'lifecycle',
+            'terminationMessagePath', 'terminationMessagePolicy', 'stdin', 'stdinOnce', 'tty', 'restartPolicy']) &&
+          (!has(c.ports) || c.ports.all(p, !has(p.hostPort) || p.hostPort == 0)) &&
+          (!has(c.env) || c.env.all(e, !has(e.value) && has(e.valueFrom) && !has(e.valueFrom.secretKeyRef) &&
+            e.valueFrom.all(k, k in ['configMapKeyRef', 'fieldRef', 'resourceFieldRef']))) &&
+          (!has(c.envFrom) || c.envFrom.all(e, has(e.configMapRef) && e.all(k, k in ['configMapRef', 'prefix']))) &&
+          (!has(c.volumeMounts) || c.volumeMounts.all(m,
+            m.mountPath != '/' && !['/proc', '/sys', '/dev'].exists(p, m.mountPath == p || m.mountPath.startsWith(p + '/')) &&
+            (!has(m.mountPropagation) || m.mountPropagation == 'None'))) &&
+          (has(c.securityContext) && has(c.securityContext.allowPrivilegeEscalation) &&
+            c.securityContext.allowPrivilegeEscalation == false && (
+            c.securityContext.all(k, k in ['runAsUser', 'runAsGroup', 'runAsNonRoot', 'readOnlyRootFilesystem',
+              'privileged', 'allowPrivilegeEscalation', 'seccompProfile']) &&
+            !has(c.securityContext.capabilities) && !has(c.securityContext.procMount) &&
+            (!has(c.securityContext.privileged) || !c.securityContext.privileged) &&
+            (!has(c.securityContext.allowPrivilegeEscalation) || !c.securityContext.allowPrivilegeEscalation) &&
+            (!has(c.securityContext.seccompProfile) || c.securityContext.seccompProfile.type == 'RuntimeDefault'))))
+    # All existing workloads are conservative, not just those currently carrying
+    # credentials: image/command/args/env/probes/mounts/access and scheduler fields
+    # remain identical. Separate container arrays preserve ordering and identity.
+    - name: podFieldsUnchanged
+      expression: >-
+        variables.ps.all(k, k in ['containers', 'initContainers'] || (k in variables.oldPS && variables.ps[k] == variables.oldPS[k])) &&
+        variables.oldPS.all(k, k in ['containers', 'initContainers'] || k in variables.ps) &&
+        (has(variables.ps.containers) ? variables.ps.containers.map(c, c.name) : []) ==
+        (has(variables.oldPS.containers) ? variables.oldPS.containers.map(c, c.name) : []) &&
+        (has(variables.ps.initContainers) ? variables.ps.initContainers.map(c, c.name) : []) ==
+        (has(variables.oldPS.initContainers) ? variables.oldPS.initContainers.map(c, c.name) : [])
+    - name: executableUnchanged
+      expression: >-
+        variables.containers.all(c, variables.oldContainers.exists(o, o.name == c.name &&
+          c.all(k, k == 'resources' || (k in o && c[k] == o[k])) && o.all(k, k == 'resources' || k in c)))
+    - name: tuningResources
+      expression: >-
+        variables.containers.map(c, has(c.resources) ? c.resources : {})
+    - name: oldTuningResources
+      expression: >-
+        variables.oldContainers.map(c, has(c.resources) ? c.resources : {})
+    - name: resourcesSafe
+      expression: >-
+        size(variables.tuningResources) == size(variables.oldTuningResources) &&
+        variables.tuningResources.all(r, r.all(k, k in ['limits', 'requests'])) &&
+        variables.oldTuningResources.all(r, r.all(k, k in ['limits', 'requests'])) &&
+        variables.containers.all(c, variables.oldContainers.exists(o, o.name == c.name &&
+          ['limits', 'requests'].all(sec,
+            (has(c.resources) && sec in c.resources ? c.resources[sec] : {}).all(k, k in ['cpu', 'memory'] ||
+              ((has(o.resources) && sec in o.resources ? o.resources[sec] : {}).exists(j, j == k) &&
+               (has(o.resources) && sec in o.resources ? o.resources[sec] : {})[k] == c.resources[sec][k])) &&
+            (has(o.resources) && sec in o.resources ? o.resources[sec] : {}).all(k, k in ['cpu', 'memory'] ||
+              (has(c.resources) && sec in c.resources ? c.resources[sec] : {}).exists(j, j == k)))))
+    - name: templateMetadataUnchanged
+      expression: >-
+        variables.tm.all(k, k in ['annotations', 'resourceVersion', 'managedFields', 'generation'] ||
+          (k in variables.oldTM && variables.tm[k] == variables.oldTM[k])) &&
+        variables.oldTM.all(k, k in ['annotations', 'resourceVersion', 'managedFields', 'generation'] || k in variables.tm) &&
+        variables.annotations.all(k, k == 'liveprobe.io/restarted-at' ||
+          (k in variables.oldAnnotations && variables.annotations[k] == variables.oldAnnotations[k])) &&
+        variables.oldAnnotations.all(k, k == 'liveprobe.io/restarted-at' || k in variables.annotations)
+    - name: rootSpecUnchanged
+      expression: >-
+        !variables.workload || object == null || oldObject == null ? false :
+        request.resource.resource == 'pods' ? true :
+        request.resource.resource == 'cronjobs' ? (
+          object.spec.all(k, k == 'jobTemplate' || (k in oldObject.spec && object.spec[k] == oldObject.spec[k])) &&
+          oldObject.spec.all(k, k == 'jobTemplate' || k in object.spec) &&
+          object.spec.jobTemplate.all(k, k == 'spec' || (k in oldObject.spec.jobTemplate && object.spec.jobTemplate[k] == oldObject.spec.jobTemplate[k])) &&
+          oldObject.spec.jobTemplate.all(k, k == 'spec' || k in object.spec.jobTemplate) &&
+          object.spec.jobTemplate.spec.all(k, k == 'template' || (k in oldObject.spec.jobTemplate.spec && object.spec.jobTemplate.spec[k] == oldObject.spec.jobTemplate.spec[k])) &&
+          oldObject.spec.jobTemplate.spec.all(k, k == 'template' || k in object.spec.jobTemplate.spec)) : (
+          object.spec.all(k, k in ['replicas', 'template'] || (k in oldObject.spec && object.spec[k] == oldObject.spec[k])) &&
+          oldObject.spec.all(k, k in ['replicas', 'template'] || k in object.spec))
+    - name: safeTuning
+      expression: >-
+        variables.podFieldsUnchanged && variables.executableUnchanged && variables.resourcesSafe &&
+        variables.templateMetadataUnchanged && variables.rootSpecUnchanged
+    - name: nodeSafe
+      expression: >-
+        request.operation == 'UPDATE' && object != null && oldObject != null &&
+        object.spec.all(k, k == 'unschedulable' || (k in oldObject.spec && object.spec[k] == oldObject.spec[k])) &&
+        oldObject.spec.all(k, k == 'unschedulable' || k in object.spec) &&
+        object.metadata.all(k, k in ['resourceVersion', 'managedFields', 'generation'] || (k in oldObject.metadata && object.metadata[k] == oldObject.metadata[k])) &&
+        oldObject.metadata.all(k, k in ['resourceVersion', 'managedFields', 'generation'] || k in object.metadata) &&
+        object.all(k, k in ['spec', 'metadata'] || (k in oldObject && object[k] == oldObject[k])) &&
+        oldObject.all(k, k in ['spec', 'metadata'] || k in object)
+  validations:
+    - expression: >-
+        (!has(request.subResource) || request.subResource == '') && request.operation in ['CREATE', 'UPDATE', 'DELETE'] &&
+        ((request.resource.group == '' && request.resource.resource in ['configmaps', 'pods', 'services', 'endpoints', 'nodes', 'replicationcontrollers', 'resourcequotas', 'limitranges']) ||
+         (request.resource.group == 'apps' && request.resource.resource in ['deployments', 'statefulsets', 'daemonsets', 'replicasets']) ||
+         (request.resource.group == 'batch' && request.resource.resource in ['jobs', 'cronjobs']) ||
+         (request.resource.group == 'networking.k8s.io' && request.resource.resource in ['ingresses', 'ingressclasses', 'networkpolicies']) ||
+         (request.resource.group == 'autoscaling' && request.resource.resource == 'horizontalpodautoscalers') ||
+         (request.resource.group == 'policy' && request.resource.resource == 'poddisruptionbudgets'))
+      message: executor resource surface
+    - expression: >-
+        variables.target != null && !((has(request.namespace) ? request.namespace : '') in ['liveprobe-system', 'liveprobe-observability']) &&
+        !variables.target.metadata.name.startsWith('liveprobe-') &&
+        !variables.target.metadata.name.startsWith('safe-action-') &&
+        !variables.target.metadata.name.startsWith('rollback-controller') &&
+        !(request.resource.resource == 'namespaces' && variables.target.metadata.name.startsWith('liveprobe'))
+      message: protected objects
+    # Ingress controller annotations and class parameters can be executable or
+    # credential references. This initial boundary accepts neither. HPA may only
+    # scale the same reviewed workload kinds, never a protected name or a CRD.
+    - expression: >-
+        object == null || (
+          (request.resource.resource != 'ingresses' ||
+            ((!has(object.spec.tls) || size(object.spec.tls) == 0) &&
+             (!has(object.spec.defaultBackend) || !has(object.spec.defaultBackend.resource)) &&
+             (!has(object.spec.rules) || object.spec.rules.all(r, !has(r.http) || r.http.paths.all(p, !has(p.backend.resource)))) &&
+             (!has(object.metadata.annotations) || size(object.metadata.annotations) == 0))) &&
+          (request.resource.resource != 'ingressclasses' || !has(object.spec.parameters)) &&
+          (request.resource.resource != 'horizontalpodautoscalers' ||
+            ((object.spec.scaleTargetRef.apiVersion == 'apps/v1' && object.spec.scaleTargetRef.kind in ['Deployment', 'StatefulSet', 'ReplicaSet'] ||
+              object.spec.scaleTargetRef.apiVersion == 'v1' && object.spec.scaleTargetRef.kind == 'ReplicationController') &&
+             !object.spec.scaleTargetRef.name.startsWith('liveprobe-') &&
+             !object.spec.scaleTargetRef.name.startsWith('safe-action-') &&
+             !object.spec.scaleTargetRef.name.startsWith('rollback-controller'))))
+      message: safe indirect references
+    - expression: >-
+        !variables.workload || request.operation != 'CREATE' || (variables.safePod &&
+          (object == null || !has(object.spec) || !has(object.spec.volumeClaimTemplates) || size(object.spec.volumeClaimTemplates) == 0))
+      message: safe workload creation
+    - expression: >-
+        !variables.workload || request.operation != 'UPDATE' || variables.safeTuning
+      message: existing workload tuning only
+    - expression: >-
+        request.resource.resource != 'nodes' || variables.nodeSafe
+      message: node cordon only
+    - expression: >-
+        request.operation != 'DELETE' ||
+        (request.resource.resource in ['configmaps', 'services', 'deployments', 'replicasets'] &&
+         (!has(oldObject.metadata.finalizers) || size(oldObject.metadata.finalizers) == 0) &&
+         (!has(oldObject.metadata.ownerReferences) || size(oldObject.metadata.ownerReferences) == 0) &&
+         (!variables.workload || variables.safePod))
+      message: safe deletion only
+    - expression: >-
+        object == null || (
+          (!has(object.metadata.finalizers) || (oldObject != null && has(oldObject.metadata.finalizers) && object.metadata.finalizers == oldObject.metadata.finalizers)) &&
+          (!has(object.metadata.ownerReferences) || (oldObject != null && has(oldObject.metadata.ownerReferences) && object.metadata.ownerReferences == oldObject.metadata.ownerReferences)) &&
+          (!has(object.metadata.labels) || object.metadata.labels.all(k,
+            k == 'sidecar.istio.io/inject' && object.metadata.labels[k] == 'false' ||
+            !(k.startsWith('pod-security.kubernetes.io/') || k.startsWith('liveprobe.io/') || k.contains('inject') || k.contains('istio')) ||
+            (oldObject != null && has(oldObject.metadata.labels) && k in oldObject.metadata.labels && object.metadata.labels[k] == oldObject.metadata.labels[k]))) &&
+          (!has(object.metadata.annotations) || object.metadata.annotations.all(k,
+            k == 'liveprobe.io/restarted-at' ||
+            !(k.contains('last-applied-configuration') || k.contains('inject') || k.contains('credential') || k.contains('secret') || k.contains('token') || k.startsWith('liveprobe.io/')) ||
+            (oldObject != null && has(oldObject.metadata.annotations) && k in oldObject.metadata.annotations && object.metadata.annotations[k] == oldObject.metadata.annotations[k]))))
+      message: protected metadata
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: liveprobe-operator-boundary
+spec:
+  policyName: liveprobe-operator-boundary
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: liveprobe-secret-writer-boundary
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    matchPolicy: Equivalent
+    resourceRules:
+      - apiGroups: ["*"]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE, DELETE, CONNECT]
+        resources: ["*/*"]
+  matchConditions:
+    - name: dedicated-identity
+      expression: "request.userInfo.username == 'system:serviceaccount:liveprobe-system:liveprobe-secret-writer'"
+  variables:
+    - name: target
+      expression: "object != null ? object : oldObject"
+  validations:
+    - expression: >-
+        request.resource.group == '' && request.resource.resource == 'secrets' &&
+        (!has(request.subResource) || request.subResource == '') && request.operation == 'UPDATE' && object != null && oldObject != null
+      message: existing Secret patch only (RBAC grants patch, not update)
+    - expression: >-
+        !((has(request.namespace) ? request.namespace : '') in ['liveprobe-system', 'liveprobe-observability']) &&
+        !variables.target.metadata.name.startsWith('liveprobe-') &&
+        !variables.target.metadata.name.startsWith('safe-action-') &&
+        !variables.target.metadata.name.startsWith('rollback-controller')
+      message: protected credential objects
+    - expression: >-
+        oldObject != null && object != null &&
+        (!has(oldObject.type) || oldObject.type != 'kubernetes.io/service-account-token') &&
+        (!has(object.type) || object.type != 'kubernetes.io/service-account-token') &&
+        (has(object.type) ? object.type : '') == (has(oldObject.type) ? oldObject.type : '') &&
+        (has(object.immutable) ? object.immutable : false) == (has(oldObject.immutable) ? oldObject.immutable : false) &&
+        (!has(oldObject.metadata.annotations) || !('kubernetes.io/service-account.name' in oldObject.metadata.annotations)) &&
+        object.metadata.all(k, k in ['resourceVersion', 'managedFields'] || (k in oldObject.metadata && object.metadata[k] == oldObject.metadata[k])) &&
+        oldObject.metadata.all(k, k in ['resourceVersion', 'managedFields'] || k in object.metadata) &&
+        object.all(k, k in ['apiVersion', 'kind', 'metadata', 'type', 'immutable', 'data', 'stringData'])
+      message: Secret data only; token type, metadata and immutability protected
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: liveprobe-secret-writer-boundary
+spec:
+  policyName: liveprobe-secret-writer-boundary
+  validationActions: [Deny]

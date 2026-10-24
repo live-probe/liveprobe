@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# KAN-64/65: the liveprobe-observability stack as ONE loadable unit, so a scoped overlay
+# (deploy/overlays/rancher-desktop-observability) can install/upgrade only these objects without
+# rendering deploy/base (which also contains liveprobe-system / KAN-103 rollback-controller objects).
+# deploy/base/kustomization.yaml still lists the same files individually; keep both lists in sync
+# (deploy/base/observability/test_config.py checks this).
+resources:
+  - prometheus/prometheus.yaml
+  - kube-state-metrics/kube-state-metrics.yaml
+  - alertmanager/alertmanager.yaml
+  - loki/loki.yaml
+  - alloy/alloy.yaml
+  - grafana/grafana.yaml

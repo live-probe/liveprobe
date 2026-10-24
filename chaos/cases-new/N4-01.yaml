@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N4-01",
+  "family": "endpoint_loss",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_endpoint_off",
+    "parameters": {
+      "duration_seconds": 21
+    }
+  },
+  "expected_signal": "no_endpoints",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "high_risk_handoff",
+  "ground_truth": {
+    "cause": "order: test-only readiness off removes all Service endpoints",
+    "expected_response": "inspect EndpointSlices and callers; operator handoff for traffic routing",
+    "decoy_signal": "order memory usage near its limit",
+    "evidence_sufficiency": "sufficient"
+  }
+}

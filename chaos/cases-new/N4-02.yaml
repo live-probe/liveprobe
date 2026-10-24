@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N4-02",
+  "family": "endpoint_loss",
+  "target": "inventory",
+  "injection": {
+    "mode": "controlled_endpoint_off",
+    "parameters": {
+      "duration_seconds": 23
+    }
+  },
+  "expected_signal": "no_endpoints",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "high_risk_handoff",
+  "ground_truth": {
+    "cause": "inventory: test-only readiness off removes all Service endpoints while order depends on it",
+    "expected_response": "inspect EndpointSlices and order 5xx; operator handoff for traffic routing",
+    "decoy_signal": "inventory DB pool idle",
+    "evidence_sufficiency": "sufficient"
+  }
+}

@@ -1,0 +1,128 @@
+# LiveProbe RAG corpus manifest (KAN-54 / KAN-82)
+#
+# Every public document that is indexed MUST have an entry here with a verified reuse licence.
+# The ingester (app/rag_ingest.py) refuses files without an entry, with a licence outside
+# `allowed_licenses`, or whose sha256 does not match (fail closed; other documents still load).
+#
+# Public excerpts are regenerated / verified from the pinned upstream commit with:
+#   uv run python corpus/curate_public.py            # verify (default): refetch pinned upstream, compare
+#   uv run python corpus/curate_public.py --write    # (re)write excerpt files from pinned upstream
+version: 1
+
+allowed_licenses:
+  CC-BY-4.0: https://creativecommons.org/licenses/by/4.0/
+  CC-BY-SA-4.0: https://creativecommons.org/licenses/by-sa/4.0/
+
+public:
+  # Kubernetes documentation, kubernetes/website repository.
+  # Licence verified 2026-09-26 from LICENSE at the pinned commit (first line
+  # "Attribution 4.0 International") and the site footer ("The Kubernetes Authors |
+  # Documentation Distributed under CC BY 4.0").
+  - doc: k8s-docs-imagepullbackoff.md
+    excerpt_sha256: 65fae67b0abcd14bc51fb89b4b6d30d9e0b1471e2d287b4e3b86657e91303e5f
+    title: "Kubernetes docs - Images: ImagePullBackOff"
+    family: [image_crash]
+    source: kubernetes-docs
+    page_url: https://kubernetes.io/docs/concepts/containers/images/#imagepullbackoff
+    upstream_repo: https://github.com/kubernetes/website
+    upstream_commit: fcf148c070b140cbd13ec65d5809f0686e680a9c
+    upstream_path: content/en/docs/concepts/containers/images.md
+    upstream_sha256: 019267d271888ab7e9b505c748a5bd0b7f99029a2270fb08390f43f94d5ddf5e
+    upstream_lines: [176, 188]
+    retrieved_at: "2026-09-26T06:30:00Z"
+    license: CC-BY-4.0
+    attribution: "\"Images\" by The Kubernetes Authors, kubernetes.io, CC BY 4.0"
+    changes: "Excerpt of one section; no text changes."
+  - doc: k8s-docs-pod-stays-waiting.md
+    excerpt_sha256: 3ae8160c1479884ec3b02d5619452c13001c230ab07f73167239f3a12f5dc50e
+    title: "Kubernetes docs - Debug Pods: My pod stays waiting"
+    family: [image_crash]
+    source: kubernetes-docs
+    page_url: https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/#my-pod-stays-waiting
+    upstream_repo: https://github.com/kubernetes/website
+    upstream_commit: fcf148c070b140cbd13ec65d5809f0686e680a9c
+    upstream_path: content/en/docs/tasks/debug/debug-application/debug-pods.md
+    upstream_sha256: 387851f607319187a0c82c93518a54840b899d24b387da5f26f7ad0233b4fb3a
+    upstream_lines: [60, 70]
+    retrieved_at: "2026-09-26T06:30:00Z"
+    license: CC-BY-4.0
+    attribution: "\"Debug Pods\" by The Kubernetes Authors, kubernetes.io, CC BY 4.0"
+    changes: "Excerpt of one section; no text changes."
+  - doc: k8s-docs-exceed-memory-limit.md
+    excerpt_sha256: adf82d8e96d1f187799d4c3599dfa91af774577e2451856fbd64866e43d6249f
+    title: "Kubernetes docs - Assign Memory Resources: Exceed a Container's memory limit"
+    family: [oom]
+    source: kubernetes-docs
+    page_url: https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/#exceed-a-container-s-memory-limit
+    upstream_repo: https://github.com/kubernetes/website
+    upstream_commit: fcf148c070b140cbd13ec65d5809f0686e680a9c
+    upstream_path: content/en/docs/tasks/configure-pod-container/assign-memory-resource.md
+    upstream_sha256: 0d8b53e0a6268bd6305f19b1ec57e061a58480ee3eed8fac02f0635077f3b726
+    upstream_lines: [130, 234]
+    retrieved_at: "2026-09-26T06:30:00Z"
+    license: CC-BY-4.0
+    attribution: "\"Assign Memory Resources to Containers and Pods\" by The Kubernetes Authors, kubernetes.io, CC BY 4.0"
+    changes: "Excerpt of one section; Hugo shortcode lines ({{% ... %}}, {{< ... >}}) removed."
+  - doc: k8s-docs-service-endpointslices.md
+    excerpt_sha256: 68ec7b28a00bd1cff3e96f71450d61d6fde9c7484869406a71f15fe1e1a23348
+    title: "Kubernetes docs - Debug Services: Does the Service have any EndpointSlices?"
+    family: [endpoint_loss]
+    source: kubernetes-docs
+    page_url: https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/#does-the-service-have-any-endpointslices
+    upstream_repo: https://github.com/kubernetes/website
+    upstream_commit: fcf148c070b140cbd13ec65d5809f0686e680a9c
+    upstream_path: content/en/docs/tasks/debug/debug-application/debug-service.md
+    upstream_sha256: 76915e474e88fbedecbfe205fb45a85867ea4612453358eda73a330ec991262d
+    upstream_lines: [420, 463]
+    retrieved_at: "2026-09-26T06:30:00Z"
+    license: CC-BY-4.0
+    attribution: "\"Debug Services\" by The Kubernetes Authors, kubernetes.io, CC BY 4.0"
+    changes: "Excerpt of one section; no text changes."
+  - doc: k8s-docs-service-missing-endpoints.md
+    excerpt_sha256: 58e4d7d0732072d649155ad858721a2af9c17325a1e73780b78c6eded0e6a115
+    title: "Kubernetes docs - Debug Pods: My service is missing endpoints"
+    family: [endpoint_loss]
+    source: kubernetes-docs
+    page_url: https://kubernetes.io/docs/tasks/debug/debug-application/debug-pods/#my-service-is-missing-endpoints
+    upstream_repo: https://github.com/kubernetes/website
+    upstream_commit: fcf148c070b140cbd13ec65d5809f0686e680a9c
+    upstream_path: content/en/docs/tasks/debug/debug-application/debug-pods.md
+    upstream_sha256: 387851f607319187a0c82c93518a54840b899d24b387da5f26f7ad0233b4fb3a
+    upstream_lines: [163, 184]
+    retrieved_at: "2026-09-26T06:30:00Z"
+    license: CC-BY-4.0
+    attribution: "\"Debug Pods\" by The Kubernetes Authors, kubernetes.io, CC BY 4.0"
+    changes: "Excerpt of one section; no text changes."
+  # Real Wikimedia production outage (sessionstore on Kubernetes). Wikitech:Copyrights
+  # states contributions are CC BY-SA 4.0 and GFDL; the article footer links CC BY-SA 4.0.
+  # Keep this excerpt under CC BY-SA 4.0, separately from the project's own content.
+  - doc: wikimedia-sessionstore-kubernetes-2020.md
+    excerpt_sha256: dace736a103ac9e4b4dfa55aa7d56749f8ac25d5e38a2f6277fa30f9eca002ba
+    title: "Wikimedia 2020-06-11 sessionstore Kubernetes outage (conclusions)"
+    family: [oom, cascading_5xx]
+    source: wikitech-incident
+    page_url: https://wikitech.wikimedia.org/wiki/Incidents/2020-06-11_sessionstore%2Bkubernetes
+    upstream_type: mediawiki
+    upstream_repo: https://wikitech.wikimedia.org
+    upstream_commit: '2005377'
+    upstream_timestamp: '2022-08-19T15:14:27Z'
+    upstream_path: Incidents/2020-06-11_sessionstore+kubernetes
+    upstream_sha256: 544bca48c030efbddef622eb6ec9e7e864208a2cc4b7cb3eddb984be09fa3ad6
+    upstream_lines: [156, 185]
+    retrieved_at: "2026-09-26T07:00:00Z"
+    license: CC-BY-SA-4.0
+    license_evidence: https://wikitech.wikimedia.org/wiki/Wikitech:Copyrights
+    attribution: '"2020-06-11 sessionstore+kubernetes" by Wikitech contributors, CC BY-SA 4.0'
+    changes: "Excerpt of conclusions and actionables; no source text changes; front matter adds attribution. This excerpt remains CC BY-SA 4.0."
+
+# Candidates reviewed and NOT ingested: reuse rights unknown / not granted. Do not cite or copy.
+rejected:
+  - url: https://github.com/hjacobs/kubernetes-failure-stories
+    reason: "No licence file (GitHub API /license 404); repository archived. Linked third-party postmortems have their own, unverified terms."
+    checked_at: "2026-09-26"
+  - url: https://github.com/danluu/post-mortems
+    reason: "GitHub API reports no licence (license: null). Linked postmortems belong to third parties."
+    checked_at: "2026-09-26"
+  - url: https://github.com/snakescott/awesome-tech-postmortems
+    reason: "GitHub API licence NOASSERTION; not a verifiable reuse grant."
+    checked_at: "2026-09-26"

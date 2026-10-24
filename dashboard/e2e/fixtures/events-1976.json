@@ -1,0 +1,106 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "kind": "evidence_collected",
+      "actor": "liveprobe",
+      "summary": "근거 7건 수집",
+      "detail": {
+        "errors": [],
+        "sources": [
+          "deployment",
+          "endpoints",
+          "k8s_event",
+          "loki",
+          "pod_status",
+          "prometheus",
+          "service"
+        ]
+      },
+      "at": "2026-10-11T12:17:26.941074Z"
+    },
+    {
+      "seq": 2,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "router 시작",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:17:26.952120Z"
+    },
+    {
+      "seq": 3,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "router 완료",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.91,
+        "duration_ms": 5496,
+        "agent_run_id": 4120,
+        "input_tokens": 16280,
+        "output_tokens": 71,
+        "root_cause_candidates": []
+      },
+      "at": "2026-10-11T12:17:32.493164Z"
+    },
+    {
+      "seq": 4,
+      "kind": "routing_decided",
+      "actor": "liveprobe",
+      "summary": "사건 수준 NORMAL → normal_group",
+      "detail": {
+        "level": "NORMAL",
+        "workflow": "normal_group",
+        "rationale": "bounded OOM/latency signal; requires multi-source analysis without automatic action. LLM agrees: One workload is healthy and serving traffic after a recent rollout. Latency is signaled by target connection pool exhaustion, but there is no OOM, crash loop, routing failure, or protected resource. The bounded latency issue fits NORMAL.",
+        "confidence": 0.91,
+        "decided_by": "rules+llm"
+      },
+      "at": "2026-10-11T12:17:32.509083Z"
+    },
+    {
+      "seq": 5,
+      "kind": "group_composed",
+      "actor": "liveprobe",
+      "summary": "group_started: kind=group_started, t_ms=0, group=normal_group, policy_version=v1",
+      "detail": {
+        "kind": "group_started",
+        "t_ms": 0,
+        "group": "normal_group",
+        "policy_version": "v1"
+      },
+      "at": "2026-10-11T12:17:32.597743Z"
+    },
+    {
+      "seq": 6,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "k8s_analyst 시작",
+      "detail": {
+        "role": "k8s_analyst",
+        "model": "gpt-6-sol",
+        "effort": "high"
+      },
+      "at": "2026-10-11T12:17:32.645587Z"
+    },
+    {
+      "seq": 7,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "log_summarizer 시작",
+      "detail": {
+        "role": "log_summarizer",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:17:32.673630Z"
+    }
+  ],
+  "control": "running"
+}

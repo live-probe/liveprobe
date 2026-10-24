@@ -1,0 +1,86 @@
+{
+  "source_revision": "31c2f87",
+  "history_included": false,
+  "public_test_system_sources_included": false,
+  "scanner": "gitleaks 8.30.1",
+  "scanner_findings": 7,
+  "reviewed_synthetic_fixtures": [
+    {
+      "file": "liveprobe/tests/test_p15_interpret.py",
+      "line": 105,
+      "rule": "generic-api-key",
+      "source_line_sha256": "970c9fdeae685aa46e4bc93c79073c88eb124b228712a9448ffe88899633a4c4",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": [
+        "test_redaction_is_preserved_in_raw_items"
+      ]
+    },
+    {
+      "file": "liveprobe/tests/test_openai_api_adapter.py",
+      "line": 14,
+      "rule": "generic-api-key",
+      "source_line_sha256": "e316495882101eecdbbd71365b1124f7fc2798fd14b2991a4406ec8a2b47317e",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": []
+    },
+    {
+      "file": "liveprobe/tests/test_evidence.py",
+      "line": 18,
+      "rule": "jwt",
+      "source_line_sha256": "626a40482fb9d06fa60013c946c53199deb41c3ad3ac7695de1bb81f4f9e3889",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": []
+    },
+    {
+      "file": "liveprobe/tests/test_p15_secret_writer.py",
+      "line": 132,
+      "rule": "generic-api-key",
+      "source_line_sha256": "051631eb9f0f4b140ab3f0ad5e0074f6167bcfa753a6cac9ff93e4ed23bcc49c",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": []
+    },
+    {
+      "file": "liveprobe/tests/test_llm.py",
+      "line": 149,
+      "rule": "jwt",
+      "source_line_sha256": "50264ab6c3dcc6c8e088d0da3742083c5184c02d6669b25798986143e457199c",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": [
+        "test_redaction"
+      ]
+    },
+    {
+      "file": "liveprobe/tests/test_llm.py",
+      "line": 69,
+      "rule": "generic-api-key",
+      "source_line_sha256": "7be376edb83811ff38bd65194313c0969f40f2de93b93dc4f6dec67554204576",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": [
+        "test_codex_auth_error_is_classified_and_redacted"
+      ]
+    },
+    {
+      "file": "liveprobe/tests/test_llm_providers.py",
+      "line": 400,
+      "rule": "generic-api-key",
+      "source_line_sha256": "b5d99dad75c44c12ad3513633f8a612cc423392be65f180670c41d56909431fb",
+      "classification": "synthetic_redaction_regression_fixture",
+      "test_functions": [
+        "test_redaction_covers_anthropic_credentials"
+      ]
+    }
+  ],
+  "unexpected_findings": 0,
+  "excluded": [
+    "credentials",
+    "local_git_history",
+    ".hermes",
+    ".e2e-tmp",
+    ".liveprobe-runner",
+    "docs/evidence",
+    "dashboard/e2e/artifacts",
+    "raw_logs",
+    "db_backups",
+    "services"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "N2-01",
+  "family": "oom",
+  "target": "order",
+  "injection": {
+    "mode": "controlled_oom",
+    "parameters": {
+      "duration_seconds": 22
+    }
+  },
+  "expected_signal": "oom_killed",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "moderate",
+  "ground_truth": {
+    "cause": "order: test-only memory pressure until OOMKilled at its 512Mi limit",
+    "expected_response": "raise the memory limit within the approved bounds and verify readiness",
+    "decoy_signal": "order HTTP 5xx from inventory calls",
+    "evidence_sufficiency": "sufficient"
+  }
+}

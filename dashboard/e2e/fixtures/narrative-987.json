@@ -1,0 +1,694 @@
+{
+  "incident": {
+    "id": 987,
+    "title": "ErrImagePull on Deployment/order [eval N1-03/adaptive_guide]",
+    "namespace": "liveprobe-target",
+    "workload": "order",
+    "status": "resolved",
+    "severity_level": "SIMPLE",
+    "signal_count": 1,
+    "created_at": "2026-10-11T12:41:38.508756Z",
+    "updated_at": "2026-10-11T12:42:07.593322Z",
+    "closed_at": "2026-10-11T12:42:07.591495Z",
+    "total_cost_usd": 0.04382,
+    "agent_run_count": 3
+  },
+  "headline": {
+    "what": "주문 서비스의 새 이미지를 내려받지 못했습니다",
+    "impact": "새 배포 파드가 대기 중입니다. 이전 버전의 파드가 요청을 처리하고 있습니다.",
+    "stage": {
+      "key": "resolved",
+      "label": "자동 복구 완료"
+    },
+    "next": "AI가 조치를 실행하고 복구를 검증했습니다. 재발 여부를 확인하세요.",
+    "source": "rules"
+  },
+  "raw": [
+    {
+      "id": "E2_pods#1",
+      "ref": "E2_pods",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:39.739205Z",
+      "raw": "{\"containers\": [{\"image\": \"liveprobe/order:does-not-exist-19\", \"image_id\": \"\", \"image_provenance\": \"unverified\", \"last_exit_code\": null, \"last_terminated_at\": null, \"last_terminated_reason\": null, \"name\": \"order\", \"ready\": false, \"restart_count\": 0, \"spec_image\": \"liveprobe/order:does-not-exist-19\", \"waiting_message\": \"Error response from daemon: pull access denied for liveprobe/order, repository does not exist or may require 'docker login'\", \"waiting_reason\": \"ErrImagePull\"}], \"labels\": {\"app\": \"order\", \"app.kubernetes.io/part-of\": \"liveprobe-target\", \"pod-template-hash\": \"c955d9c5c\", \"security.istio.io/tlsMode\": \"istio\", \"service.istio.io/canonical-name\": \"order\", \"service.istio.io/canonical-revision\": \"latest\"}, \"name\": \"order-c955d9c5c-zs9xg\", \"phase\": \"Pending\", \"replicaset\": \"order-c955d9c5c\", \"terminating\": false}",
+      "severity": "error",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#1",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:31+00:00",
+      "raw": "Error: ImagePullBackOff",
+      "severity": "error",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#3",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:29+00:00",
+      "raw": "Error: ErrImagePull",
+      "severity": "error",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#15",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:44+00:00",
+      "raw": "Error: ErrImagePull",
+      "severity": "error",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#2",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:29+00:00",
+      "raw": "Failed to pull image \"liveprobe/order:does-not-exist-19\": Error response from daemon: pull access denied for liveprobe/order, repository does not exist or may require 'docker login'",
+      "severity": "warn",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#14",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:44+00:00",
+      "raw": "Failed to pull image \"liveprobe/order:does-not-exist-19\": Error response from daemon: pull access denied for liveprobe/order, repository does not exist or may require 'docker login'",
+      "severity": "warn",
+      "ko": "이미지를 내려받지 못했습니다. 태그와 저장소 접근 권한을 확인해야 합니다.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E1_deployment#0",
+      "ref": "E1_deployment",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:39.738058Z",
+      "raw": "{\"available_replicas\": 1, \"conditions\": [{\"reason\": \"MinimumReplicasAvailable\", \"status\": \"True\", \"type\": \"Available\"}, {\"reason\": \"ReplicaSetUpdated\", \"status\": \"True\", \"type\": \"Progressing\"}], \"current_revision\": 107, \"current_revision_created\": \"2026-10-11T12:39:58+00:00\", \"images\": [\"liveprobe/order:does-not-exist-19\"], \"name\": \"order\", \"ready_replicas\": 1, \"recent_rollout_at\": \"2026-10-11T12:41:24+00:00\", \"replicas\": 1, \"resources\": {\"order\": {\"limits\": {\"memory\": \"512Mi\"}, \"requests\": {\"cpu\": \"100m\", \"memory\": \"256Mi\"}}}, \"revisions\": [{\"available\": 0, \"created\": \"2026-10-11T12:39:58+00:00\", \"images\": [\"liveprobe/order:does-not-exist-19\"], \"replicas\": 1, \"replicaset\": \"order-c955d9c5c\", \"revision\": 107}, {\"available\": 1, \"created\": \"2026-10-11T12:18:36+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 1, \"replicaset\": \"order-64578f5db8\", \"revision\": 106}, {\"available\": 0, \"created\": \"2026-10-11T03:42:15+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-6589d69896\", \"revision\": 103}, {\"available\": 0, \"created\": \"2026-10-11T11:52:20+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-66c88dd774\", \"revision\": 102}, {\"available\": 0, \"created\": \"2026-10-11T11:55:54+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-6778fb775c\", \"revision\": 100}, {\"available\": 0, \"created\": \"2026-10-11T11:47:22+00:00\", \"images\": [\"liveprobe/order:does-not-exist-19\"], \"replicas\": 0, \"replicaset\": \"order-8654db8f6f\", \"revision\": 96}, {\"available\": 0, \"created\": \"2026-10-11T03:40:05+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-7d89599ff5\", \"revision\": 92}, {\"available\": 0, \"created\": \"2026-10-11T03:20:29+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-b5d8db559\", \"revision\": 91}, {\"available\": 0, \"created\": \"2026-10-11T00:26:03+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-6cbc4dffbf\", \"revision\": 90}, {\"available\": 0, \"created\": \"2026-10-11T02:00:28+00:00\", \"images\": [\"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\"], \"replicas\": 0, \"replicaset\": \"order-fcd6b8d7\", \"revision\": 89}], \"selector\": {\"app\": \"order\"}, \"unavailable_replicas\": 1, \"updated_replicas\": 1}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E2_pods#0",
+      "ref": "E2_pods",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:39.739205Z",
+      "raw": "{\"containers\": [{\"image\": \"liveprobe/order:kan119\", \"image_id\": \"docker-pullable://liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\", \"image_provenance\": \"digest_matches_spec\", \"last_exit_code\": null, \"last_terminated_at\": null, \"last_terminated_reason\": null, \"name\": \"order\", \"ready\": true, \"restart_count\": 0, \"spec_image\": \"liveprobe/order@sha256:10fcdad11d51decb6a01d58a3688f898a2d4ee88ecca0acab1efb523d9fd55ec\", \"waiting_message\": null, \"waiting_reason\": null}], \"labels\": {\"app\": \"order\", \"app.kubernetes.io/part-of\": \"liveprobe-target\", \"pod-template-hash\": \"64578f5db8\", \"security.istio.io/tlsMode\": \"istio\", \"service.istio.io/canonical-name\": \"order\", \"service.istio.io/canonical-revision\": \"latest\"}, \"name\": \"order-64578f5db8-d68xd\", \"phase\": \"Running\", \"replicaset\": \"order-64578f5db8\", \"terminating\": false}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E3_service#0",
+      "ref": "E3_service",
+      "kind": "status",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:39.744779Z",
+      "raw": "{\"matching_pods\": [\"order-64578f5db8-d68xd\", \"order-c955d9c5c-zs9xg\"], \"name\": \"order\", \"pods_labeled_app_eq_service\": [\"order-64578f5db8-d68xd\", \"order-c955d9c5c-zs9xg\"], \"ready_endpoints\": 1, \"selector\": {\"app\": \"order\"}}",
+      "severity": "info",
+      "ko": "수집 당시의 자원 상태 원문입니다. 준비 상태와 목표 수량을 함께 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E5_recent_events#0",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:31+00:00",
+      "raw": "Back-off pulling image \"liveprobe/order:does-not-exist-19\"",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#4",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:28+00:00",
+      "raw": "Pulling image \"liveprobe/order:does-not-exist-19\"",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#5",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:26+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#6",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:26+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#7",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:26+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#8",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:25+00:00",
+      "raw": "Container image \"docker.io/istio/proxyv2:1.30.5\" already present on machine and can be accessed by the pod",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#9",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:25+00:00",
+      "raw": "Container created",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#10",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:25+00:00",
+      "raw": "Container started",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#11",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:24.844772+00:00",
+      "raw": "Successfully assigned liveprobe-target/order-c955d9c5c-zs9xg to lima-rancher-desktop",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#12",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:24+00:00",
+      "raw": "Created pod: order-c955d9c5c-zs9xg",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#13",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:41:24+00:00",
+      "raw": "Scaled up replica set order-c955d9c5c from 0 to 1",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#16",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:44+00:00",
+      "raw": "Stopping container istio-proxy",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#17",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:43+00:00",
+      "raw": "Pulling image \"liveprobe/order:does-not-exist-19\"",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#18",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:43+00:00",
+      "raw": "Deleted pod: order-c955d9c5c-2qb9w",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E5_recent_events#19",
+      "ref": "E5_recent_events",
+      "kind": "event",
+      "source": "kubernetes",
+      "at": "2026-10-11T12:40:43+00:00",
+      "raw": "Scaled down replica set order-c955d9c5c from 1 to 0",
+      "severity": "info",
+      "ko": "쿠버네티스가 기록한 자원 상태 변화입니다. 원문의 대상·사유·시각을 확인하세요.",
+      "ko_source": "rules",
+      "cited_by": [
+        "signal_analyst",
+        "result_verifier"
+      ]
+    },
+    {
+      "id": "E6_metrics#0",
+      "ref": "E6_metrics",
+      "kind": "metric",
+      "source": "prometheus",
+      "at": "2026-10-11T12:41:40.088933Z",
+      "raw": "{\"_query\": {\"evaluated_at\": \"2026-10-11T12:41:39.811298+00:00\", \"promql\": {\"http_5xx\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\", status=~\\\"5..\\\"}[1m]))\", \"http_all\": \"sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"latency_ms\": \"1000 * sum by (app) (rate(http_server_requests_seconds_sum{namespace=\\\"liveprobe-target\\\"}[1m])) / sum by (app) (rate(http_server_requests_seconds_count{namespace=\\\"liveprobe-target\\\"}[1m]))\", \"pool_active\": \"max by (app) (hikaricp_connections_active{namespace=\\\"liveprobe-target\\\"})\", \"pool_max\": \"max by (app) (hikaricp_connections_max{namespace=\\\"liveprobe-target\\\"})\", \"pool_pending\": \"max by (app) (hikaricp_connections_pending{namespace=\\\"liveprobe-target\\\"})\", \"pool_timeouts\": \"sum by (app) (increase(hikaricp_connections_timeout_total{namespace=\\\"liveprobe-target\\\"}[5m]))\", \"restarts\": \"sum by (pod) (kube_pod_container_status_restarts_total{namespace=\\\"liveprobe-target\\\"})\"}, \"range\": \"1m\"}, \"db_pool_acquire_timeouts_5m\": {\"order\": 0.0}, \"db_pool_active\": {\"order\": 0.0}, \"db_pool_max\": {\"order\": 4.0}, \"db_pool_pending_threads\": {\"order\": 0.0}, \"http_5xx_rate_per_s\": {\"order\": 0.0}, \"http_rate_per_s\": {\"order\": 3.1556}, \"mean_latency_ms_1m\": {\"order\": 5.6}, \"restarts\": {\"order-64578f5db8-d68xd\": 0, \"order-c955d9c5c-zs9xg\": 0}}",
+      "severity": "info",
+      "ko": "수집 당시의 원천 지표입니다. 누락된 지표는 정상으로 판정하지 않습니다.",
+      "ko_source": "rules",
+      "cited_by": []
+    },
+    {
+      "id": "E7_error_logs#0",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:41:40.141740Z",
+      "raw": "[order] 2026-10-11T12:41:26.686574Z\tinfo\tEnvoy command: [-c etc/istio/proxy/envoy-rev.json --drain-time-s 45 --drain-strategy immediate --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --allow-unknown-static-fields -l warning --component-log-level misc:error --skip-deprecated-logs --concurrency 2]\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": []
+    },
+    {
+      "id": "E7_error_logs#1",
+      "ref": "E7_error_logs",
+      "kind": "log",
+      "source": "loki",
+      "at": "2026-10-11T12:41:40.141740Z",
+      "raw": "[order] 2026-10-11T12:41:26.643147Z\tinfo\tFLAG: --proxyComponentLogLevel=\"misc:error\"\n",
+      "severity": "info",
+      "ko": null,
+      "ko_source": null,
+      "cited_by": []
+    },
+    {
+      "id": "agent:4184",
+      "ref": "agent:router",
+      "kind": "agent",
+      "source": "agent:router",
+      "at": "2026-10-11T12:41:44.632555Z",
+      "raw": "A single workload has a clear, very recent rollout to a nonexistent image tag, causing ErrImagePull. The previous revision remains available with one ready endpoint, and no protected resource or routing failure is indicated.",
+      "severity": "info",
+      "ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4185",
+      "ref": "agent:signal_analyst",
+      "kind": "agent",
+      "source": "agent:signal_analyst",
+      "at": "2026-10-11T12:41:51.989414Z",
+      "raw": "The newest Deployment revision uses the nonexistent image tag `liveprobe/order:does-not-exist-19`, causing ErrImagePull. Revision 106 uses the previously available digest and has a ready pod; rolling back to it restores the workload.",
+      "severity": "info",
+      "ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    },
+    {
+      "id": "agent:4186",
+      "ref": "agent:result_verifier",
+      "kind": "agent",
+      "source": "agent:result_verifier",
+      "at": "2026-10-11T12:42:03.982599Z",
+      "raw": "Verified: revision 107 introduced an image that cannot be pulled, while revision 106 is healthy and serving the ready endpoint. Rolling back is safe and directly removes the failed rollout.",
+      "severity": "info",
+      "ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+      "ko_source": "llm",
+      "cited_by": []
+    }
+  ],
+  "flow": {
+    "nodes": [
+      {
+        "id": "signal",
+        "type": "signal",
+        "label": "이미지 내려받기 실패 감지",
+        "role": null,
+        "role_ko": "이미지 내려받기 실패 감지",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 0,
+        "group": null
+      },
+      {
+        "id": "evidence",
+        "type": "evidence",
+        "label": "원천 근거 7건",
+        "role": null,
+        "role_ko": "원천 근거 7건",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 1,
+        "group": null
+      },
+      {
+        "id": "router",
+        "type": "router",
+        "label": "사건 수준 판단",
+        "role": "router",
+        "role_ko": "사건 수준 판단",
+        "job_ko": "원천 근거로 장애 수준과 분석 그룹을 결정합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 16211,
+          "out": 66
+        },
+        "cost_usd": 0.001654,
+        "duration_ms": 4414,
+        "inputs": [],
+        "conclusion_ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+        "conclusion_raw": "A single workload has a clear, very recent rollout to a nonexistent image tag, causing ErrImagePull. The previous revision remains available with one ready endpoint, and no protected resource or routing failure is indicated.",
+        "lane": 0,
+        "depth": 2,
+        "group": null
+      },
+      {
+        "id": "group",
+        "type": "group",
+        "label": "단순 그룹 선택",
+        "role": null,
+        "role_ko": "단순 그룹 선택",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 3,
+        "group": "SIMPLE"
+      },
+      {
+        "id": "run:4185",
+        "type": "agent",
+        "label": "신호 분석",
+        "role": "signal_analyst",
+        "role_ko": "신호 분석",
+        "job_ko": "이벤트와 상태를 읽고 원인과 조치를 제안합니다.",
+        "status": "done",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "tokens": {
+          "in": 18275,
+          "out": 284
+        },
+        "cost_usd": 0.00197,
+        "duration_ms": 7228,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E5_recent_events",
+          "R1",
+          "R3"
+        ],
+        "conclusion_ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+        "conclusion_raw": "The newest Deployment revision uses the nonexistent image tag `liveprobe/order:does-not-exist-19`, causing ErrImagePull. Revision 106 uses the previously available digest and has a ready pod; rolling back to it restores the workload.",
+        "lane": 0,
+        "depth": 4,
+        "group": "SIMPLE"
+      },
+      {
+        "id": "run:4186",
+        "type": "verify",
+        "label": "결과 확인",
+        "role": "result_verifier",
+        "role_ko": "결과 확인",
+        "job_ko": "분석 결론과 조치가 근거에 맞는지 확인합니다.",
+        "status": "done",
+        "model": "gpt-5.6-terra",
+        "effort": "low",
+        "tokens": {
+          "in": 18340,
+          "out": 293
+        },
+        "cost_usd": 0.040196,
+        "duration_ms": 11926,
+        "inputs": [
+          "E1_deployment",
+          "E2_pods",
+          "E5_recent_events",
+          "R1",
+          "R3"
+        ],
+        "conclusion_ko": "새 배포 버전 107의 이미지 태그를 내려받을 수 없습니다. 이전 버전 106은 준비된 파드가 있어 이전 배포로 되돌리는 조치가 근거와 일치합니다.",
+        "conclusion_raw": "Verified: revision 107 introduced an image that cannot be pulled, while revision 106 is healthy and serving the ready endpoint. Rolling back is safe and directly removes the failed rollout.",
+        "lane": 0,
+        "depth": 5,
+        "group": "SIMPLE"
+      },
+      {
+        "id": "action:94",
+        "type": "action",
+        "label": "이전 배포로 롤백",
+        "role": null,
+        "role_ko": "이전 배포로 롤백",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": "조치를 실행한 뒤 복구 검증을 통과했습니다.",
+        "conclusion_raw": "rollout_undo → succeeded",
+        "lane": 0,
+        "depth": 6,
+        "group": null
+      },
+      {
+        "id": "outcome",
+        "type": "outcome",
+        "label": "자동 복구 완료",
+        "role": null,
+        "role_ko": "자동 복구 완료",
+        "job_ko": "이 단계의 실행 상태를 확인합니다.",
+        "status": "done",
+        "model": null,
+        "effort": null,
+        "tokens": null,
+        "cost_usd": null,
+        "duration_ms": null,
+        "inputs": [],
+        "conclusion_ko": null,
+        "conclusion_raw": null,
+        "lane": 0,
+        "depth": 7,
+        "group": null
+      }
+    ],
+    "edges": [
+      {
+        "id": "signal>evidence:flow",
+        "source": "signal",
+        "target": "evidence",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "evidence>router:flow",
+        "source": "evidence",
+        "target": "router",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "router>group:flow",
+        "source": "router",
+        "target": "group",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "group>run:4185:flow",
+        "source": "group",
+        "target": "run:4185",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4185>run:4186:flow",
+        "source": "run:4185",
+        "target": "run:4186",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "run:4186>action:94:flow",
+        "source": "run:4186",
+        "target": "action:94",
+        "kind": "flow",
+        "label": null
+      },
+      {
+        "id": "action:94>outcome:flow",
+        "source": "action:94",
+        "target": "outcome",
+        "kind": "flow",
+        "label": null
+      }
+    ]
+  },
+  "interpreting": false
+}

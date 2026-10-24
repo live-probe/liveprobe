@@ -1,0 +1,113 @@
+# Kustomize Component: shared overlay parameter wiring (KAN-61).
+# An overlay lists a ConfigMap named `liveprobe-platform` in its `resources` (annotated
+# config.kubernetes.io/local-config: "true" so it is NOT applied to the cluster) and then this component.
+# Keys:
+#   ingressClassName   IngressClass for all three Ingresses
+#   storageClassName   StorageClass for standalone PVCs and the postgres volumeClaimTemplate
+#   liveprobeHost      host serving the dashboard (/) and API (/api)
+#   grafanaHost        host serving Grafana
+#   ingressNamespace   namespace of the ingress controller pods (NetworkPolicy allow-list)
+#   ingressPodName     app.kubernetes.io/name label of the ingress controller pods (NetworkPolicy allow-list)
+#   apiserverCIDR      address block of the Kubernetes API server endpoints as seen after Service DNAT
+#                      (`kubectl get endpointslice -n default -l kubernetes.io/service-name=kubernetes`);
+#                      scripts/install.sh refuses to apply if it does not cover the live endpoint.
+#   nodeCIDR           kubelet InternalIP /32 for the scoped Prometheus :10250 egress policy;
+#                      portable-example uses a documentation address, never a wildcard.
+# Registry / image tags are set with the overlay's `images:` list.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+replacements:
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.ingressClassName
+    targets:
+      - select:
+          kind: Ingress
+        fieldPaths:
+          - spec.ingressClassName
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.storageClassName
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+        fieldPaths:
+          - spec.storageClassName
+        options:
+          create: true
+      - select:
+          kind: StatefulSet
+          name: postgres
+        fieldPaths:
+          - spec.volumeClaimTemplates.0.spec.storageClassName
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.liveprobeHost
+    targets:
+      - select:
+          kind: Ingress
+          name: liveprobe-api
+        fieldPaths:
+          - spec.rules.0.host
+      - select:
+          kind: Ingress
+          name: liveprobe-dashboard
+        fieldPaths:
+          - spec.rules.0.host
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.grafanaHost
+    targets:
+      - select:
+          kind: Ingress
+          name: grafana
+        fieldPaths:
+          - spec.rules.0.host
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: allow-ingress-controller
+        fieldPaths:
+          - "spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]"
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.apiserverCIDR
+    targets:
+      - select:
+          kind: NetworkPolicy
+          labelSelector: liveprobe.io/egress=apiserver
+        fieldPaths:
+          - spec.egress.0.to.0.ipBlock.cidr
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.nodeCIDR
+    targets:
+      - select:
+          kind: NetworkPolicy
+          labelSelector: liveprobe.io/egress=kubelet
+        fieldPaths:
+          - spec.egress.0.to.0.ipBlock.cidr
+  - source:
+      kind: ConfigMap
+      name: liveprobe-platform
+      fieldPath: data.ingressPodName
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: allow-ingress-controller
+        fieldPaths:
+          - "spec.ingress.0.from.0.podSelector.matchLabels.[app.kubernetes.io/name]"

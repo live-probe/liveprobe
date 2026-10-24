@@ -1,0 +1,8 @@
+/* 확대 제어와 범례는 그래프 위에 겹치지 않는 독립 행이다. */
+.topology-canvas,.flow-canvas{display:grid;grid-template-rows:minmax(0,1fr) auto}
+.topology-canvas>.react-flow,.flow-canvas>.react-flow{min-height:0;min-width:0}
+.graph-toolbar{display:flex;align-items:center;gap:5px;padding:6px 10px;border-top:1px solid var(--line);background:#fff;min-width:0;flex-wrap:wrap}
+.graph-toolbar button{flex:none;height:30px;min-width:30px;padding:3px 8px;border:1px solid var(--line-strong);border-radius:4px;background:#fff;font-size:12px;line-height:20px}
+.graph-toolbar button:hover{background:var(--accent-weak)}
+.graph-legend{display:flex;flex-wrap:wrap;align-items:center;gap:3px 12px;margin-left:auto;padding-left:8px;color:var(--text-3);font-size:11px;line-height:1.5;min-width:0}
+.graph-legend>span{display:inline-flex;align-items:center;gap:5px}

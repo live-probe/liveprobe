@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Portable base: core / apps / rbac / networking / admissionregistration v1 APIs.
+# Ingress class, storage class, hosts, registry/tags and platform CIDRs are set in overlays through
+# deploy/components/platform (see deploy/overlays/*/platform.yaml).
+resources:
+  - namespaces/namespaces.yaml
+  - postgres/postgres.yaml
+  - observability/prometheus/prometheus.yaml
+  - observability/kube-state-metrics/kube-state-metrics.yaml
+  - observability/alertmanager/alertmanager.yaml
+  - observability/loki/loki.yaml
+  - observability/alloy/alloy.yaml
+  - observability/grafana/grafana.yaml
+  - target/target.yaml
+  - liveprobe/liveprobe.yaml
+  - liveprobe/operator-executor.yaml
+  - liveprobe/liveprobe-write-guard.yaml
+  - liveprobe/rollback-controller.yaml
+  - dashboard/dashboard.yaml
+  - network/network-policies.yaml
+
+patches:
+  # The API asks the separately bound controller for a named rollback over HTTPS only;
+  # ROLLBACK_CONTROLLER_URL is set once in liveprobe/liveprobe.yaml (KAN-111 removed a stale
+  # second http://...:8081 entry that overrode it and made rollout_undo unconfigured).
+  # KAN-63: workloads that never call the Kubernetes API get no ServiceAccount token.
+  # Only liveprobe-api, prometheus, alloy and kube-state-metrics keep a (narrowly bound) token.
+  # A new workload must be added here or given its own dedicated ServiceAccount + Role.
+  - target:
+      kind: (Deployment|StatefulSet)
+      name: ^(dashboard|postgres|grafana|loki|alertmanager|order|inventory|loadgen)$
+    patch: |-
+      - op: add
+        path: /spec/template/spec/automountServiceAccountToken
+        value: false

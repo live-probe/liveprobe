@@ -1,0 +1,141 @@
+# KAN-103: no live installation until immutable digest ConfigMap and TLS Secret are
+# provided out-of-band and admission webhook CA is populated. Never mount tokens
+# from target Pods or grant this principal Secret reads.
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: rollback-controller, namespace: liveprobe-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: rollback-controller, namespace: liveprobe-target}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [inventory, order]
+    verbs: [get, patch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: rollback-controller, namespace: liveprobe-target}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: rollback-controller}
+subjects:
+  - {kind: ServiceAccount, namespace: liveprobe-system, name: rollback-controller}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: rollback-controller-token-review}
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: rollback-controller-token-review}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: rollback-controller-token-review}
+subjects:
+  - {kind: ServiceAccount, namespace: liveprobe-system, name: rollback-controller}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rollback-controller
+  namespace: liveprobe-system
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: rollback-controller}}
+  template:
+    metadata: {labels: {app: rollback-controller}}
+    spec:
+      serviceAccountName: rollback-controller
+      containers:
+        - name: controller
+          image: liveprobe/rollback-controller:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {containerPort: 8443, name: admission}
+          env:
+            - name: ROLLBACK_INVENTORY_IMAGE
+              valueFrom: {configMapKeyRef: {name: rollback-image-policy, key: inventory}}
+            - name: ROLLBACK_ORDER_IMAGE
+              valueFrom: {configMapKeyRef: {name: rollback-image-policy, key: order}}
+          volumeMounts:
+            - {name: admission-tls, mountPath: /var/run/rollback-tls, readOnly: true}
+            - {name: rollback-grant, mountPath: /var/run/secrets/rollback-grant, readOnly: true}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: admission-tls
+          secret: {secretName: rollback-admission-tls}
+        - name: rollback-grant
+          secret: {secretName: rollback-action-grant, items: [{key: key, path: key}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: rollback-controller, namespace: liveprobe-system}
+spec:
+  selector: {app: rollback-controller}
+  ports:
+    - {name: admission, port: 443, targetPort: admission}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata: {name: rollback-controller-image-guard}
+webhooks:
+  - name: rollback-controller.liveprobe.invalid
+    admissionReviewVersions: [v1]
+    sideEffects: None
+    timeoutSeconds: 5
+    failurePolicy: Fail
+    matchPolicy: Exact
+    matchConditions:
+      - name: controller-only
+        expression: "request.userInfo.username == 'system:serviceaccount:liveprobe-system:rollback-controller'"
+    clientConfig:
+      service:
+        name: rollback-controller
+        namespace: liveprobe-system
+        path: /validate
+        port: 443
+      # caBundle is populated by the deployment operator from a verified CA.
+      # An empty CA fails closed for the controller SA; do not apply before TLS setup.
+    rules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [UPDATE]
+        resources: [deployments]
+        scope: Namespaced
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: liveprobe-target}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: rollback-controller, namespace: liveprobe-system}
+spec:
+  podSelector: {matchLabels: {app: rollback-controller}}
+  policyTypes: [Ingress]
+  ingress:
+    # API server source addresses vary with the CNI. /undo requires a
+    # projected, audience-bound SA token; policy is defense in depth only.
+    - ports: [{protocol: TCP, port: 8443}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rollback-controller-apiserver
+  namespace: liveprobe-system
+  labels: {liveprobe.io/egress: apiserver}
+spec:
+  podSelector: {matchLabels: {app: rollback-controller}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{ipBlock: {cidr: 0.0.0.0/32}}]
+      ports: [{protocol: TCP, port: 443}, {protocol: TCP, port: 6443}]

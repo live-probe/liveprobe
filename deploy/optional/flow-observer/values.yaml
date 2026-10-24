@@ -1,0 +1,14 @@
+# Retina (Hubble control plane) for the local Rancher Desktop cluster. CNI-agnostic: works with the
+# existing flannel CNI, no CNI replacement. Verified P0 2026-10-01 (docs/plans/revamp/P0-feasibility.md).
+# Relay has TLS disabled: it is reachable only inside the cluster and the liveprobe-api egress policy.
+agent:
+  enabled: true
+  init: {enabled: true, repository: ghcr.io/microsoft/retina/retina-init}
+  repository: ghcr.io/microsoft/retina/retina-agent
+hubble:
+  relay: {tls: {server: {enabled: false}}}
+  tls: {enabled: false, auto: {enabled: false}}
+  ui: {enabled: false}
+logLevel: info
+operator: {enabled: true, repository: ghcr.io/microsoft/retina/retina-operator}
+os: {windows: false}

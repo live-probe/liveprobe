@@ -1,0 +1,40 @@
+[project]
+name = "liveprobe"
+version = "0.1.0"
+description = "LiveProbe MVP-0: Kubernetes incident detection, LLM analysis and safe remediation"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlalchemy>=2.0.30",
+  "psycopg[binary]>=3.2",
+  "alembic>=1.13",
+  "pgvector>=0.3",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "itsdangerous>=2.2",
+  "sse-starlette>=2.1",
+  "kubernetes>=30.1",
+  "httpx>=0.27",
+  "langgraph>=0.2",
+  "openai>=1.40",
+  "fastembed>=0.4",
+  "pyyaml>=6.0",
+  "anthropic>=1.8,<2",
+  "jsonschema>=4.23,<5",
+  "grpcio>=1.84.0",
+  "protobuf>=7.36.2",
+]
+
+[dependency-groups]
+dev = [
+  "grpcio-tools>=1.84.0",
+  "pytest>=8.2",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

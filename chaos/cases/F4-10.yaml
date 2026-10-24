@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "F4-10",
+  "family": "endpoint_loss",
+  "target": "inventory",
+  "injection": {
+    "mode": "controlled_endpoint_off",
+    "parameters": {
+      "duration_seconds": 15
+    }
+  },
+  "expected_signal": "upstream_5xx",
+  "recovery": "restore_snapshot_and_verify",
+  "baseline_checks": [
+    "deployments_ready",
+    "services_endpoints_present",
+    "order_check_200"
+  ],
+  "reference_workflow": "high_risk_handoff",
+  "ground_truth": {
+    "cause": "inventory: test-only bounded endpoint unavailability (controlled_endpoint_off, {'duration_seconds': 15})",
+    "expected_response": "operator handoff; inspect EndpointSlices and upstream errors; reset controlled fault",
+    "decoy_signal": "historical warning event",
+    "evidence_sufficiency": "sufficient"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "organization": "live-probe",
+  "platform": {
+    "repository": "live-probe/liveprobe",
+    "url": "https://github.com/live-probe/liveprobe",
+    "visibility": "public"
+  },
+  "systems": {
+    "order": {
+      "repository": "live-probe/order",
+      "url": "https://github.com/live-probe/order",
+      "visibility": "private",
+      "base_branch": "main",
+      "services": {
+        "order": {"source_subdir": "services/order"},
+        "inventory": {"source_subdir": "services/inventory"}
+      }
+    },
+    "payment": {"repository": "live-probe/payment", "url": "https://github.com/live-probe/payment", "visibility": "private", "base_branch": "main", "services": {"payment": {"source_subdir": "."}}},
+    "member": {"repository": "live-probe/member", "url": "https://github.com/live-probe/member", "visibility": "private", "base_branch": "main", "services": {"member": {"source_subdir": "."}}},
+    "catalog": {"repository": "live-probe/catalog", "url": "https://github.com/live-probe/catalog", "visibility": "private", "base_branch": "main", "services": {"catalog": {"source_subdir": "."}}},
+    "delivery": {"repository": "live-probe/delivery", "url": "https://github.com/live-probe/delivery", "visibility": "private", "base_branch": "main", "services": {"delivery": {"source_subdir": "."}}},
+    "notification": {"repository": "live-probe/notification", "url": "https://github.com/live-probe/notification", "visibility": "private", "base_branch": "main", "services": {"notification": {"source_subdir": "."}}}
+  },
+  "pull_request_policy": {
+    "auto_merge": false,
+    "human_merge_required_before_prd": true,
+    "environments": ["dev", "stg", "prd"],
+    "each_promotion_requires_confirmation": true
+  }
+}

@@ -1,0 +1,386 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "kind": "evidence_collected",
+      "actor": "liveprobe",
+      "summary": "근거 7건 수집",
+      "detail": {
+        "errors": [],
+        "sources": [
+          "deployment",
+          "endpoints",
+          "k8s_event",
+          "loki",
+          "pod_status",
+          "prometheus",
+          "service"
+        ]
+      },
+      "at": "2026-10-11T12:17:26.941074Z"
+    },
+    {
+      "seq": 2,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "router 시작",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:17:26.952120Z"
+    },
+    {
+      "seq": 3,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "router 완료",
+      "detail": {
+        "role": "router",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.91,
+        "duration_ms": 5496,
+        "agent_run_id": 4120,
+        "input_tokens": 16280,
+        "output_tokens": 71,
+        "root_cause_candidates": []
+      },
+      "at": "2026-10-11T12:17:32.493164Z"
+    },
+    {
+      "seq": 4,
+      "kind": "routing_decided",
+      "actor": "liveprobe",
+      "summary": "사건 수준 NORMAL → normal_group",
+      "detail": {
+        "level": "NORMAL",
+        "workflow": "normal_group",
+        "rationale": "bounded OOM/latency signal; requires multi-source analysis without automatic action. LLM agrees: One workload is healthy and serving traffic after a recent rollout. Latency is signaled by target connection pool exhaustion, but there is no OOM, crash loop, routing failure, or protected resource. The bounded latency issue fits NORMAL.",
+        "confidence": 0.91,
+        "decided_by": "rules+llm"
+      },
+      "at": "2026-10-11T12:17:32.509083Z"
+    },
+    {
+      "seq": 5,
+      "kind": "group_composed",
+      "actor": "liveprobe",
+      "summary": "group_started: kind=group_started, t_ms=0, group=normal_group, policy_version=v1",
+      "detail": {
+        "kind": "group_started",
+        "t_ms": 0,
+        "group": "normal_group",
+        "policy_version": "v1"
+      },
+      "at": "2026-10-11T12:17:32.597743Z"
+    },
+    {
+      "seq": 6,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "k8s_analyst 시작",
+      "detail": {
+        "role": "k8s_analyst",
+        "model": "gpt-6-sol",
+        "effort": "high"
+      },
+      "at": "2026-10-11T12:17:32.645587Z"
+    },
+    {
+      "seq": 7,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "log_summarizer 시작",
+      "detail": {
+        "role": "log_summarizer",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:17:32.673630Z"
+    },
+    {
+      "seq": 8,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "Order is logging repeated database connection failures, while its pool is fully occupied (4/4), with one waiting thread and three acquire timeouts in five minutes. Inventory logs the same JDBC connection failure and returns 503s to order; order’s measured 5xx rate is 0.0222/s with mean latency 29.7 ms. The data points to connection pressure but does not establish whether the cause is a stuck pool,",
+      "detail": {
+        "role": "log_summarizer",
+        "model": "gpt-6-luna",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.78,
+        "duration_ms": 10743,
+        "agent_run_id": 4121,
+        "input_tokens": 16891,
+        "output_tokens": 805,
+        "root_cause_candidates": [
+          {
+            "cause": "Connection pool exhaustion or connection acquisition failures are affecting order requests; logs and metrics establish the symptom but do not identify why connections are unavailable.",
+            "confidence": 0.91,
+            "evidence_refs": [
+              "E6_metrics",
+              "E7_error_logs"
+            ]
+          },
+          {
+            "cause": "A shared database connectivity or availability issue may be affecting both order and inventory.",
+            "confidence": 0.66,
+            "evidence_refs": [
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:17:43.507811Z"
+    },
+    {
+      "seq": 9,
+      "kind": "escalated",
+      "actor": "liveprobe",
+      "summary": "escalated: kind=escalated, t_ms=10930, role=log_summarizer, reason=2 quote(s) not found in cited sources",
+      "detail": {
+        "kind": "escalated",
+        "role": "log_summarizer",
+        "t_ms": 10930,
+        "reason": "2 quote(s) not found in cited sources",
+        "to_model": "gpt-5.6-terra",
+        "to_effort": "low",
+        "from_model": "gpt-6-luna",
+        "from_effort": "low"
+      },
+      "at": "2026-10-11T12:17:43.524380Z"
+    },
+    {
+      "seq": 10,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "log_summarizer 시작",
+      "detail": {
+        "role": "log_summarizer",
+        "model": "gpt-5.6-terra",
+        "effort": "low"
+      },
+      "at": "2026-10-11T12:17:43.535381Z"
+    },
+    {
+      "seq": 11,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The order connection pool exhaustion signal concerns a running, ready pod. Restarting the Deployment is a bounded mitigation that can clear its in-process pool; the reason the pool became exhausted still needs investigation.",
+      "detail": {
+        "role": "k8s_analyst",
+        "model": "gpt-6-sol",
+        "effort": "high",
+        "status": "succeeded",
+        "confidence": 0.76,
+        "duration_ms": 17855,
+        "agent_run_id": 4122,
+        "input_tokens": 18191,
+        "output_tokens": 902,
+        "root_cause_candidates": [
+          {
+            "cause": "The running order process has exhausted its connection pool, as reported by the incident signal; the mechanism is unknown.",
+            "confidence": 0.78,
+            "evidence_refs": [
+              "E2_pods",
+              "E3_service"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:17:50.544795Z"
+    },
+    {
+      "seq": 12,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The order workload is experiencing JDBC connection-acquisition failures while its database pool is fully saturated, producing a small but measurable 5xx rate. Inventory shows similar database failures and is contributing 503s, so the shared database/dependency path may be involved.",
+      "detail": {
+        "role": "log_summarizer",
+        "model": "gpt-5.6-terra",
+        "effort": "low",
+        "status": "succeeded",
+        "confidence": 0.9,
+        "duration_ms": 21621,
+        "agent_run_id": 4123,
+        "input_tokens": 16689,
+        "output_tokens": 705,
+        "root_cause_candidates": [
+          {
+            "cause": "Order's JDBC connection pool is exhausted: all four connections are active, a thread is pending, and acquisition timeouts coincide with CannotGetJdbcConnectionException logs.",
+            "confidence": 0.96,
+            "evidence_refs": [
+              "E6_metrics",
+              "E7_error_logs"
+            ]
+          },
+          {
+            "cause": "A shared database or connection-path issue is affecting both order and inventory, with inventory 503s adding downstream errors to order.",
+            "confidence": 0.66,
+            "evidence_refs": [
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:18:05.245133Z"
+    },
+    {
+      "seq": 13,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "coordinator 시작",
+      "detail": {
+        "role": "coordinator",
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:18:05.286137Z"
+    },
+    {
+      "seq": 14,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "Order’s running process has a saturated JDBC connection pool (4/4 active, with pending acquisition and timeouts), directly causing database lookup failures and 5xxs. A shared database/connection-path problem is plausible because inventory shows concurrent JDBC failures, so restarting order is only a bounded mitigation, not a confirmed durable fix.",
+      "detail": {
+        "role": "coordinator",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.9,
+        "duration_ms": 21795,
+        "agent_run_id": 4124,
+        "input_tokens": 20184,
+        "output_tokens": 724,
+        "root_cause_candidates": [
+          {
+            "cause": "Order's in-process JDBC connection pool is exhausted: all four connections are active, a thread is pending, and acquisition timeouts are producing CannotGetJdbcConnectionException errors.",
+            "confidence": 0.96,
+            "evidence_refs": [
+              "E6_metrics",
+              "E7_error_logs"
+            ]
+          },
+          {
+            "cause": "A shared database or connection-path issue is affecting both order and inventory; inventory's JDBC failures also generate downstream 503s for order.",
+            "confidence": 0.66,
+            "evidence_refs": [
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:18:27.125574Z"
+    },
+    {
+      "seq": 15,
+      "kind": "agent_started",
+      "actor": "liveprobe",
+      "summary": "group_verifier 시작",
+      "detail": {
+        "role": "group_verifier",
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "at": "2026-10-11T12:18:27.144208Z"
+    },
+    {
+      "seq": 16,
+      "kind": "agent_finished",
+      "actor": "liveprobe",
+      "summary": "The primary candidate is supported: order’s JDBC pool is demonstrably saturated and producing connection-acquisition failures. However, the evidence also shows concurrent inventory JDBC failures, so a restart is only a reversible mitigation and does not establish or repair the underlying shared database/connection-path cause.",
+      "detail": {
+        "role": "group_verifier",
+        "model": "gpt-5.6-terra",
+        "effort": "medium",
+        "status": "succeeded",
+        "confidence": 0.92,
+        "duration_ms": 9009,
+        "agent_run_id": 4125,
+        "input_tokens": 20107,
+        "output_tokens": 791,
+        "root_cause_candidates": [
+          {
+            "cause": "Order's in-process JDBC connection pool is exhausted: all four connections are active, a thread is pending, and acquisition timeouts are producing CannotGetJdbcConnectionException errors.",
+            "confidence": 0.97,
+            "evidence_refs": [
+              "E6_metrics",
+              "E7_error_logs"
+            ]
+          },
+          {
+            "cause": "A shared database or connection-path issue is affecting both order and inventory; inventory's JDBC failures also generate downstream 503s for order.",
+            "confidence": 0.68,
+            "evidence_refs": [
+              "E7_error_logs"
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-11T12:18:36.203089Z"
+    },
+    {
+      "seq": 17,
+      "kind": "action_proposed",
+      "actor": "liveprobe",
+      "summary": "조치 제안: rollout_restart → Deployment/order",
+      "detail": {
+        "why": "Mitigation: restart the verified running process to clear its exhausted in-process JDBC pool. The shared database/connection-path or application connection-lifecycle root cause still requires developer/operator investigation.",
+        "type": "rollout_restart",
+        "params": {},
+        "status": "proposed",
+        "action_id": 92
+      },
+      "at": "2026-10-11T12:18:36.258862Z"
+    },
+    {
+      "seq": 18,
+      "kind": "action_proposed",
+      "actor": "liveprobe",
+      "summary": "조치 #92 실행 시작",
+      "detail": {
+        "actor": "liveprobe",
+        "level": "NORMAL",
+        "action_id": 92
+      },
+      "at": "2026-10-11T12:18:36.264852Z"
+    },
+    {
+      "seq": 19,
+      "kind": "action_executed",
+      "actor": "liveprobe",
+      "summary": "조치 #92 결과: succeeded",
+      "detail": {
+        "reason": "post-verification passed",
+        "status": "succeeded",
+        "action_id": 92
+      },
+      "at": "2026-10-11T12:18:49.955053Z"
+    },
+    {
+      "seq": 20,
+      "kind": "verification_result",
+      "actor": "liveprobe",
+      "summary": "롤아웃 검증 통과",
+      "detail": {
+        "ok": true,
+        "action_id": 92
+      },
+      "at": "2026-10-11T12:18:49.978437Z"
+    },
+    {
+      "seq": 21,
+      "kind": "completed",
+      "actor": "liveprobe",
+      "summary": "해결됨: rollout_restart succeeded and verified",
+      "detail": {
+        "outcome": "resolved"
+      },
+      "at": "2026-10-11T12:18:50.033841Z"
+    }
+  ],
+  "control": "running"
+}
