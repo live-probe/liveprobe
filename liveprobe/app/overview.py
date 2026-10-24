@@ -152,7 +152,7 @@ def assemble(inventory: dict, values: dict, *, events: list | None = None, incid
         w = {"id": wid, "namespace": n.get("namespace"), "name": n["name"], "kind": n["kind"],
              "system": n.get("system"), "environment": cfg.environment(n.get("namespace")),
              "ready": n.get("ready"), "desired": n.get("desired", n.get("pods")), **metric,
-             "incident": {"id": inc["id"], "level": inc.get("severity_level"), "status": inc["status"], "stage": inc.get("stage")} if inc else None}
+             "incident": {"id": inc["id"], "level": inc.get("severity_level"), "status": inc["status"], "stage": inc.get("stage"), "system": inc.get("system"), "environment": cfg.environment(inc.get("namespace"))} if inc else None}
         workloads.append(w)
         n.update(metric)
         if inc and not n.get("warnings"):

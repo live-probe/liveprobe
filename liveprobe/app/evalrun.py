@@ -115,10 +115,10 @@ def run_one(case: str, target: str, signal: str, arm: dict, wait_s: int) -> dict
     if signal == "upstream_5xx":
         name = next((c for c, callees in cfg.dependencies.items() if target in callees), target)
     from .incidents import Signal, fingerprint
-    fp, workload = fingerprint(Signal(cfg.target_namespace, kind, name, reason, "evaluation", {}), cfg)
+    fp, workload = fingerprint(Signal(cfg.target_namespaces[0], kind, name, reason, "evaluation", {}), cfg)
     now = datetime.now(timezone.utc)
     with db.session() as s:
-        inc = Incident(fingerprint=f"eval/{case}/{arm['arm_id']}/{int(time.time())}", namespace=cfg.target_namespace,
+        inc = Incident(fingerprint=f"eval/{case}/{arm['arm_id']}/{int(time.time())}", namespace=cfg.target_namespaces[0],
                        workload=workload, status="open", title=f"{reason} on {kind}/{name} [eval {case}/{arm['arm_id']}]",
                        signal_count=1, signal_reasons=[reason], created_at=now, updated_at=now)
         s.add(inc)

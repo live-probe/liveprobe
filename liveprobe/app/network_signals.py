@@ -53,27 +53,17 @@ class NetworkSignalAdapter:
     def _targets(self, deadline: float) -> tuple[dict[str, str], list[dict[str, str]]]:
         # Worker-private data only: an expired lookup must not emit or update
         # last_errors/watermarks after the polling caller has already returned.
-        errors = []
-
-        def read(method, *args):
-            if time.monotonic() >= deadline:
-                raise TimeoutError("network poll deadline exceeded")
-            result = method(*args)
-            if time.monotonic() >= deadline:
-                raise TimeoutError("network poll deadline exceeded")
-            return result
-
-        def error(stage, exc):
-            if time.monotonic() >= deadline:
-                raise TimeoutError("network poll deadline exceeded") from None
-            errors.append({"stage": stage, "error": type(exc).__name__})
-
         targets: dict[str, str] = {}
         errors = []
         for ns in self.cfg.target_namespaces:
-            part, failures = self._targets_namespace(ns, deadline)
-            targets.update(part)
-            errors.extend(failures)
+            try:
+                part, failures = self._targets_namespace(ns, deadline)
+                targets.update(part)
+                errors.extend(failures)
+            except Exception as exc:
+                if time.monotonic() >= deadline:
+                    raise
+                errors.append({"stage": "namespace_inventory", "namespace": ns, "error": type(exc).__name__})
         return targets, errors
 
     def _targets_namespace(self, ns: str, deadline: float):
@@ -82,8 +72,13 @@ class NetworkSignalAdapter:
         def read(method, *args):
             if time.monotonic() >= deadline:
                 raise TimeoutError("network poll deadline exceeded")
-            return method(*args)
+            result = method(*args)
+            if time.monotonic() >= deadline:
+                raise TimeoutError("network poll deadline exceeded")
+            return result
         def error(stage, exc):
+            if time.monotonic() >= deadline:
+                raise TimeoutError("network poll deadline exceeded") from None
             errors.append({"stage": stage, "error": type(exc).__name__})
         targets: dict[str, str] = {}
         pods = [p for p in read(self.kube.list_pods, ns)

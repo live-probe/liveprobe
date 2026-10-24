@@ -24,7 +24,7 @@ Emit = Callable[[Signal], None]
 class Watchers:
     def __init__(self, kube: K.Kube, cfg: AppConfig, emit: Emit, *, flow_store: FlowStore | None = None):
         self.kube, self.cfg, self.emit = kube, cfg, emit
-        self.ns = cfg.target_namespace
+        self.ns = cfg.target_namespaces[0]
         self._stop = threading.Event()
         self._empty_since: dict[str, float] = {}
         self.status: dict[str, dict] = {}
@@ -68,16 +68,19 @@ class Watchers:
 
     # --- pods ----------------------------------------------------------------
     def handle_pod(self, pod: dict) -> None:
+        ns = (pod.get("metadata") or {}).get("namespace", self.ns)
+        if ns not in self.cfg.target_namespaces:
+            return
         if (pod.get("metadata") or {}).get("deletionTimestamp"):
             return
         reasons = [r for r in K.pod_waiting_reasons(pod) if r in SIGNAL_REASONS]
         if not reasons:
             return
-        dep = K.deployment_for_pod(self.kube, self.ns, pod)
+        dep = K.deployment_for_pod(self.kube, ns, pod)
         if not dep:
             return
         for r in sorted(set(reasons)):
-            self.emit(Signal(self.ns, "Deployment", dep, r, "pod_watch", {"pod": pod["metadata"]["name"]}))
+            self.emit(Signal(ns, "Deployment", dep, r, "pod_watch", {"pod": pod["metadata"]["name"]}))
 
     def _pod_loop(self) -> None:
         from kubernetes import watch
@@ -106,6 +109,9 @@ class Watchers:
     # --- events ----------------------------------------------------------------
     def handle_event(self, e: dict) -> None:
         io = e.get("involvedObject") or {}
+        ns = io.get("namespace") or (e.get("metadata") or {}).get("namespace") or self.ns
+        if ns not in self.cfg.target_namespaces:
+            return
         if io.get("kind") != "Pod" or e.get("type") != "Warning":
             return
         msg = (e.get("message") or "")
@@ -117,7 +123,7 @@ class Watchers:
             sig = "CrashLoopBackOff"
         if not sig:
             return
-        pod = self.kube.get_pod(self.ns, io.get("name"))
+        pod = self.kube.get_pod(ns, io.get("name"))
         if not pod or (pod.get("metadata") or {}).get("deletionTimestamp"):
             return
         # a same-name Pod recreated since the Event must not inherit it (owner-aware, UID-exact)
@@ -126,9 +132,9 @@ class Watchers:
         # only signal if the pod is *currently* in a failing state (ignores stale events)
         if not set(K.pod_waiting_reasons(pod)) & SIGNAL_REASONS:
             return
-        dep = K.deployment_for_pod(self.kube, self.ns, pod)
+        dep = K.deployment_for_pod(self.kube, ns, pod)
         if dep:
-            self.emit(Signal(self.ns, "Deployment", dep, sig, "event_watch", {"pod": io.get("name"), "event": reason}))
+            self.emit(Signal(ns, "Deployment", dep, sig, "event_watch", {"pod": io.get("name"), "event": reason}))
 
     def _event_loop(self) -> None:
         from kubernetes import watch

@@ -25,7 +25,7 @@ export function ChangeRequestCard({ change: c, onChange }: {change:ChangeRequest
     finally { setBusy(false); }
   }
   const running = ['patching','building','dev_deploying','stg_deploying','prd_deploying'].includes(c.status);
-  return <article className="command-card change-request-card" aria-label={`변경 요청 ${c.id}`} style={{minWidth:0,maxWidth:'100%',overflow:'hidden',overflowWrap:'anywhere'}}>
+  return <article className="command-card change-request-card" aria-label={`변경 요청 ${c.id}`} style={{minWidth:0,maxWidth:'100%',flexShrink:0,overflow:'hidden',overflowWrap:'anywhere'}}>
     <header><b>변경 요청 · #{c.id}</b><span role="status" className={`badge ${c.status.endsWith('_failed') || c.status==='error' ? 'danger' : running ? 'info' : 'ok'}`}>{running && <Spinner/>}{changeStatusKo(c.status)}</span></header>
     <p>{c.namespace_origin} · {c.system} · {c.service}</p>
     <ol aria-label="변경 단계" style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',paddingLeft:16}}>{changeProgress(c).map(s=><li key={s.label} aria-current={s.state==='진행 중'?'step':undefined}><b>{s.label}</b> · {s.state}</li>)}</ol>

@@ -179,6 +179,8 @@ class EvidenceStore:
                 return self._views[ck]
             self.misses += 1
         chosen = {k: v for k, v in self.sources.items() if k.split("_", 1)[0] in keys or k in keys}
+        if "E8_code_refs" in chosen:
+            chosen = {"E8_code_refs": chosen.pop("E8_code_refs"), **chosen}
         block = "Evidence sources (each top-level key is a citable ref):\n" + \
             json.dumps(chosen, default=str, ensure_ascii=False)[: self.view_chars]
         if self.collection_errors:

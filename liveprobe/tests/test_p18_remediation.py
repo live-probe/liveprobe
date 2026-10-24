@@ -30,3 +30,23 @@ def test_schemas_and_workflow_prompt_include_remediation():
     assert 'remediation' in AGENT_SCHEMA['properties']
     assert 'remediation' in GROUP_SCHEMA['properties']
     assert 'E8_code_refs' in GROUP_OUTPUT_RULES and 'remediation' in OUTPUT_RULES
+
+
+def test_simple_verifier_rejects_fabricated_remediation_refs():
+    from app.workflows import build_simple_graph, AgentCall
+    message = {'summary': 'bad rollout', 'next_action': 'rollout_undo', 'confidence': 0.99,
+               'remediation': {'kind': 'both', 'why': 'stack', 'code_refs': [{'file': '/app/forged.py', 'line': 9, 'symbol': 'f'}], 'repro': None}}
+    state = {'incident': {'workload': 'payment'}, 'evidence': {'E8_code_refs': {'frames': []}}, 'features': {},
+             'has_previous_revision': True, 'rag': [], 'allowlist': ['rollout_undo']}
+    out = build_simple_graph(lambda *a: AgentCall(True, message, 1)).invoke(state)
+    assert out['outcome'] == 'handoff'
+    assert 'remediation' in out['reason']
+
+
+def test_code_refs_are_not_lost_to_prompt_truncation():
+    from app.workflows import _ctx
+    from app.agent_groups import EvidenceStore, ALL_E
+    evidence = {'E7_error_logs': ['x' * 14000], 'E8_code_refs': {'frames': [{'file': '/app/important.py', 'line': 42, 'symbol': 'pay'}]}}
+    text = _ctx({'incident': {}, 'features': {}, 'evidence': evidence})
+    assert '/app/important.py' in text
+    assert '/app/important.py' in EvidenceStore(evidence).view(ALL_E)

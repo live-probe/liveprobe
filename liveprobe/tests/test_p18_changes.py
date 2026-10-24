@@ -284,6 +284,7 @@ def test_runner_http_plan_promote_confirm_and_no_token_fallback(setup, tmp_path)
         p = client.get(f"/api/changes/{c['id']}/plan?stage=dev").json()
         assert client.post(f"/api/changes/{c['id']}/promote",json={'stage':'dev','plan_sha256':p['plan_sha256']}).status_code == 422
         assert not x.release.calls
+        assert client.post(f"/api/changes/{c['id']}/promote",json={'stage':'dev','plan_sha256':p['plan_sha256'],'confirm':1}).status_code == 422
         x.service.release = None
         r = client.post(f"/api/changes/{c['id']}/promote",json={'stage':'dev','plan_sha256':p['plan_sha256'],'confirm':True})
         assert r.status_code == 503 and r.json()['detail'] == 'release_executor_unavailable'

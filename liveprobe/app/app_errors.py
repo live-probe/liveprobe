@@ -118,9 +118,12 @@ def fetch_exceptions(settings: Settings, namespaces: list[str], start: float, en
 def code_evidence(rows: list[dict], reason: str | None = None) -> dict:
     exceptions, frames = [], []
     for row in rows:
-        for parsed in parse_exceptions(row.get('sample') or ''):
+        parsed_rows = [row] if row.get('exception') and 'frames' in row else parse_exceptions(row.get('sample') or '')
+        for parsed in parsed_rows:
             if len(exceptions) >= 2:
                 break
+            parsed = {k: parsed[k] for k in ('exception', 'message', 'frames', 'sample')}
+            parsed['sample'] = _bounded(parsed['sample'])
             exceptions.append(parsed)
             for frame in parsed['frames']:
                 if frame not in frames:
@@ -153,7 +156,9 @@ class AppErrorWatcher:
             ns, app, stamp = row.get('namespace'), row.get('app'), row.get('timestamp', 0)
             if ns not in self.cfg.target_namespaces or not app or not cutoff <= stamp <= now:
                 continue
-            for parsed in parse_exceptions(row.get('sample') or ''):
+            parsed_rows = [row] if row.get('exception') and 'frames' in row else parse_exceptions(row.get('sample') or '')
+            for parsed in parsed_rows:
+                parsed = {k: parsed[k] for k in ('exception', 'message', 'frames', 'sample')}
                 identity = (ns, app, row.get('stream'), stamp, parsed['sample'])
                 if identity in self._seen:
                     continue

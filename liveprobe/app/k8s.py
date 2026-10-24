@@ -29,13 +29,15 @@ class Kube:
         return self.api_client.sanitize_for_serialization(obj)
 
     def executor(self, token_file: str, ca_file: str = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
-                 namespace: str = "liveprobe-target", cfg=None):
+                 namespace: str | None = None, cfg=None):
         """Write client for the dedicated safe-action-executor identity, or None when its token is not mounted.
 
         The API's own service account stays read-only (and is denied writes by admission); only this projected,
         separately-bound token can patch the two target Deployments / delete controller-owned target Pods."""
         import os
         from .actions import SafeActionKube
+        from .config import get_app_config
+        app_cfg = cfg or get_app_config()
         if not os.path.isfile(token_file):
             return None
         cfg = self.client.Configuration()
@@ -48,7 +50,7 @@ class Kube:
             pass
         api = self.client.ApiClient(cfg)
         return SafeActionKube(self, self.client.CoreV1Api(api), self.client.AppsV1Api(api), self.client.ApiException,
-                              namespace=namespace, cfg=cfg)
+                              namespace=namespace or app_cfg.target_namespaces[0], cfg=app_cfg)
 
     # --- reads -------------------------------------------------------------
     def list_pods(self, ns: str, selector: dict[str, str] | None = None) -> list[dict]:

@@ -46,7 +46,7 @@ export function environmentOptions(o: Overview) {
 }
 export function environmentSummary(e: EnvironmentStat): string {
   if (e.missing) return '미관측';
-  return `파드 ${numberKo(e.pods_ready)}/${numberKo(e.pods_total)} · 진행 중 장애 ${numberKo(e.open_incidents)}${observed(e.open_incidents) ? '건' : ''}`;
+  return `준비 파드 ${numberKo(e.pods_ready)}/${numberKo(e.pods_total)} · 진행 중 장애 ${numberKo(e.open_incidents)}${observed(e.open_incidents) ? '건' : ''}`;
 }
 export function defaultMapScope(o: Overview): string {
   const envs = environmentOptions(o);

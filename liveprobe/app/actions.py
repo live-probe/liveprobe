@@ -242,6 +242,8 @@ def _v_pod_delete(cfg, pol, kube, ns, name, params) -> Validated:
     if not dep_name:
         raise Denied("Pod is not controller-owned by a Deployment ReplicaSet; deletion would not be recreated")
     dep = _deployment(cfg, kube, ns, dep_name)
+    if (md.get("labels") or {}).get("app.kubernetes.io/part-of") != (_meta(dep).get("labels") or {}).get("app.kubernetes.io/part-of"):
+        raise Denied("Pod ownership system differs from Deployment system")
     if not md.get("uid") or not md.get("resourceVersion"):
         raise Denied("Pod is missing uid/resourceVersion; cannot use delete preconditions")
     if ((dep.get("spec") or {}).get("replicas") or 0) < 1:
@@ -318,6 +320,9 @@ def _v_configmap(cfg, pol, kube, ns, name, params) -> Validated:
         raise Denied("ConfigMaps with binaryData are out of scope")
     consumer = (lmd.get("labels") or {}).get("app")
     dep = _deployment(cfg, kube, ns, consumer or "")
+    system = (_meta(dep).get("labels") or {}).get("app.kubernetes.io/part-of")
+    if (lmd.get("labels") or {}).get("app.kubernetes.io/part-of") != system:
+        raise Denied("ConfigMap ownership system differs from Deployment system")
     if not lmd.get("resourceVersion") or not lmd.get("uid"):
         raise Denied("ConfigMap is missing uid/resourceVersion")
     src = kube.get_configmap(ns, version)
@@ -327,6 +332,8 @@ def _v_configmap(cfg, pol, kube, ns, name, params) -> Validated:
         raise Denied(f"version ConfigMap {version!r} is not immutable")
     if not _labels_ok(_meta(src).get("labels"), pol.ownership_labels) or src.get("binaryData"):
         raise Denied(f"version ConfigMap {version!r} lacks ownership labels or has binaryData")
+    if (_meta(src).get("labels") or {}).get("app.kubernetes.io/part-of") != system:
+        raise Denied("version ConfigMap ownership system differs from Deployment system")
     src_hash = data_hash(src.get("data"))
     if src_hash != entry.sha256:
         raise Denied(f"version ConfigMap {version!r} content hash does not match the approved hash")

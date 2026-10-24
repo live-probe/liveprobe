@@ -178,3 +178,68 @@ def test_api_environment_system_and_remediation_contract(db_url, monkeypatch):
     config.get_settings.cache_clear()
     config.get_app_config.cache_clear()
 
+
+def test_watcher_direct_callbacks_respect_object_namespace():
+    from app.watcher import Watchers
+    from conftest import family1_kube
+    sent = []
+    k = family1_kube()
+    pod = k.pods[1]
+    pod['metadata']['namespace'] = 'prd'
+    w = Watchers(k, AppConfig(), sent.append)
+    w.handle_pod(pod)
+    assert sent[-1].namespace == 'prd'
+    pod['metadata']['namespace'] = 'outside'
+    w.handle_pod(pod)
+    assert len(sent) == 1
+
+
+def test_empty_managed_selector_is_rejected():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError, match='managed_label'):
+        AppConfig(safe_actions={'managed_label': {}})
+
+
+def test_network_owner_resolution_is_namespace_local_and_missing_env_isolated():
+    import time
+    from app.network_signals import NetworkSignalAdapter
+    from app.flows import FlowStore
+    from conftest import family1_kube
+    k = family1_kube()
+    original = k.list_pods
+    def pods(ns):
+        if ns == 'dev': raise RuntimeError('not observed')
+        result = original(ns)
+        for p in result: p['metadata']['namespace'] = ns
+        return result
+    k.list_pods = pods
+    adapter = NetworkSignalAdapter(FlowStore(), k, AppConfig(), lambda s: None)
+    targets, errors = adapter._targets(time.monotonic() + 5)
+    assert targets['prd/pod/inventory-bbb-1'] == 'prd/Deployment/inventory'
+    assert targets['stg/pod/inventory-bbb-1'] == 'stg/Deployment/inventory'
+    assert errors and not any(key.startswith('dev/') for key in targets)
+
+
+def test_real_executor_factory_keeps_app_config_separate_from_client_config(tmp_path):
+    from types import SimpleNamespace
+    from app.k8s import Kube
+    from kubernetes import client
+    kube = Kube.__new__(Kube)
+    kube.client = SimpleNamespace(Configuration=client.Configuration, ApiClient=lambda cfg: object(), CoreV1Api=lambda c: object(), AppsV1Api=lambda c: object(), ApiException=Exception)
+    token = tmp_path / 'projected-token'
+    token.write_text('unit-test-only')
+    cfg = AppConfig()
+    executor = kube.executor(str(token), cfg=cfg)
+    assert executor.cfg is cfg
+    assert executor.cfg.target_namespaces == ['dev', 'stg', 'prd']
+
+
+def test_pod_system_label_must_match_owning_workload():
+    import pytest
+    from app.actions import validate, Denied
+    from test_typed_actions import ExecKube
+    k = ExecKube()
+    k.pods[0]['metadata']['labels']['app.kubernetes.io/part-of'] = 'other'
+    with pytest.raises(Denied, match='system'):
+        validate(AppConfig(target_namespace='liveprobe-target'), k, 'pod_delete', 'liveprobe-target', 'Pod', k.pods[0]['metadata']['name'], {}, system='liveprobe-target')

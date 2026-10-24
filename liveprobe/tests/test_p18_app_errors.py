@@ -56,3 +56,36 @@ def test_collection_publishes_e8_and_evidence_summary(monkeypatch):
     b = collect(family1_kube(), AppConfig(), Settings(), 'prd', 'payment')
     assert compact_summary(b)['E8_code_refs']['frames'][0]['line'] == 42
     assert any(i.source == 'code_refs' and i.payload['exceptions'] for i in b.items)
+
+
+def test_split_loki_stack_and_multiline_blocks(monkeypatch):
+    import json
+    from app.app_errors import fetch_exceptions, AppErrorWatcher
+    class Response:
+        def raise_for_status(self): pass
+        def json(self):
+            values = [[str(int((100 + i) * 1e9)), line] for i, line in enumerate(PY.splitlines())]
+            return {'data': {'result': [{'stream': {'namespace': 'prd', 'app': 'payment', 'pod': 'one'}, 'values': values}]}}
+    seen = {}
+    def get(*args, **kwargs):
+        seen.update(kwargs['params'])
+        return Response()
+    monkeypatch.setattr('app.app_errors.httpx.get', get)
+    out = fetch_exceptions(Settings(), ['dev', 'prd'], 99, 110)
+    assert out[0]['frames'][0]['file'] == '/app/PaymentService.py'
+    assert 'dev|prd' in seen['query'] and 'namespace=~' in seen['query']
+    watcher = AppErrorWatcher(AppConfig(app_error_threshold=1), Settings(), lambda s: None)
+    assert watcher.process(out, now=110) == 1
+
+
+def test_long_stack_still_detected_with_bounded_sample(monkeypatch):
+    from app.app_errors import fetch_exceptions, AppErrorWatcher, code_evidence
+    raw = PY.replace('ValueError:', '  # ' + 'x' * 5000 + '\nValueError:')
+    class Response:
+        def raise_for_status(self): pass
+        def json(self): return {'data': {'result': [{'stream': {'namespace': 'prd', 'app': 'payment'}, 'values': [[str(int(100e9)), raw]]}]}}
+    monkeypatch.setattr('app.app_errors.httpx.get', lambda *a, **kw: Response())
+    out = fetch_exceptions(Settings(), ['prd'], 99, 110)
+    watcher = AppErrorWatcher(AppConfig(app_error_threshold=1), Settings(), lambda s: None)
+    assert watcher.process(out, now=110) == 1
+    assert code_evidence(out)['frames'][0]['line'] == 42

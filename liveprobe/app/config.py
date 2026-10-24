@@ -152,6 +152,8 @@ class SafeActionPolicy(BaseModel):
 
     @model_validator(mode="after")
     def _bounds(self) -> "SafeActionPolicy":
+        if not self.managed_label or any(not k.strip() or not v.strip() for k, v in self.managed_label.items()):
+            raise ValueError("managed_label must contain non-empty key/value selectors")
         if self.replicas_min > self.replicas_max or self.memory_limit_min_mi > self.memory_limit_max_mi:
             raise ValueError("safe_actions lower bound exceeds upper bound")
         return self

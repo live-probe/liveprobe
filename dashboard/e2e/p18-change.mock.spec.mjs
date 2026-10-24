@@ -18,5 +18,6 @@ test('변경 요청 카드와 승격 확인 취소·진행 및 PR 안내', async
   await card.getByRole('button',{name:'dev로 승격',exact:true}).click();
   await expect(card).toContainText('개발 환경 검증 완료',{timeout:12000});
   await expect(card.getByRole('button',{name:'stg로 승격',exact:true})).toBeVisible();
-  await card.scrollIntoViewIfNeeded(); await layout(page); await capture(page,info,'p18-change-dev-verified');
+  expect(await card.evaluate(e=>e.getBoundingClientRect().height)).toBeGreaterThan(250);
+  await card.evaluate(e=>e.scrollIntoView({block:'start'})); await layout(page); await capture(page,info,'p18-change-dev-verified');
 });

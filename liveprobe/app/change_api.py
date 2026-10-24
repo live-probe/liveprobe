@@ -62,7 +62,7 @@ def setup_changes(engine, state):
 class PromotionIn(BaseModel):
     stage: Literal['dev', 'stg', 'prd']
     plan_sha256: str = Field(min_length=64, max_length=64)
-    confirm: Literal[True]
+    confirm: bool = Field(strict=True)
 
 
 def change_router(state, *, settings=None):

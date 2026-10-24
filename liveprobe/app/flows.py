@@ -419,7 +419,7 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
             if inc.get("claimed") or time.time() - float(inc.get("updated_ts") or 0) > HANDOFF_FRESH_S:
                 continue
         wid = f"{inc.get('namespace')}/Deployment/{inc.get('workload')}"
-        warnings.setdefault(wid, []).append({"incident_id": inc["id"], "level": inc.get("severity_level"), "status": inc.get("status"), "title": inc.get("title")})
+        warnings.setdefault(wid, []).append({"incident_id": inc["id"], "level": inc.get("severity_level"), "status": inc.get("status"), "title": inc.get("title"), "system": inc.get("system"), "environment": cfg.environment(inc.get("namespace"))})
     for wid, items in warnings.items():
         if wid in nodes:
             nodes[wid]["warnings"] = items

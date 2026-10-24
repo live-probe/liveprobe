@@ -17,6 +17,7 @@
 | A9 | 수정 대상은 `live-probe` organization의 비공개 GitHub 저장소 6개다(`order`는 order·inventory 두 서비스, 나머지는 시스템별 단일 저장소). 러너는 저장소를 clone하여 수정 브랜치를 push하고 실제 PR을 만든다. 사용자가 GitHub에서 검토·병합하며 AI는 자동 병합하지 않는다. LiveProbe 자체는 비밀정보·로컬 자료를 제외한 별도 초기 이력으로 `live-probe/liveprobe`에 공개한다. | 사용자 추가 지시로 로컬 전용 저장소·외부 push 금지 가정을 대체했다. 기존 로컬 작업 이력은 보존하고 인증정보를 공개 이력에 섞지 않는다. |
 | A10 | 단계 검증 = rollout 준비 + 헬스 + 장애를 일으킨 요청 재현 성공 + 60초 동안 해당 앱 새 예외 로그 0건. 실패하면 그 단계만 이전 이미지로 자동 원복한다(쿠버네티스 범위 원복은 기존에 허용됨). | 쿠버네티스 한정 자동 원복 원칙이다. |
 | A11 | 앱 예외 감지: 기존 Prometheus 5xx·Pod 신호에 더해 LiveProbe가 Loki를 15초 간격으로 조회하는 앱 예외 감시기를 둔다(`ApplicationException`). | HTTP 지표가 없는 백그라운드 작업 오류도 언어와 무관하게 감지한다. |
+| A12 | 장애 관제실은 기본 01 분석 흐름 + 02 통합 분석·운영자 채팅으로 재편한다. 노드 선택은 같은 실행 카드로 부드럽게 이동하고, 상세보기 때만 기존03폭 패널을 연다. 단계별 요약·한글 결론·수집 항목 목록을 대화의 기본 내용으로 둔다. | 사용자 추가 인터뷰 요구다. 빈 단계 상세와 역할별 동일 근거 반복을 없애되 승인·지시·PR 안전 계약을 유지한다. |
 
 ## B. 코드 수정 승격 계약 (변경 요청, ChangeRequest)
 - 상태: `awaiting_source → patching → awaiting_build → building → built | tests_failed | patch_failed → dev_deploying → dev_verified | dev_failed → stg_deploying → stg_verified | stg_failed → prd_deploying → prd_verified(완료) | prd_failed`. 운영자 취소는 `cancelled`.
@@ -49,7 +50,10 @@
 ## D. 화면 계약
 - 운영 관제: 환경 선택(dev → stg → prd, 기본 prd, "전체 환경" 포함). 환경 안에서 시스템 상자별로 서비스를 그린다. 플랫폼 구성요소는 기존 토글을 유지한다.
 - 장애 목록·관제실: "prd · order · inventory"처럼 환경·시스템·서비스를 표시한다.
-- 관제실 대화 영역에 변경 요청 카드를 둔다: 상태 단계 표시, diff, 시험 결과, 이미지, 단계별 승격 버튼(부작용 + "정말 진행하시겠습니까?"), 단계 결과·원복 기록.
+- 장애 관제실의 기본은 01 AI 분석 흐름 + 02 분석·운영자 통합 채팅이다. 기존 상시 근거 열·독립03 대화 열을 유지하는 가정은 폐기한다. 노드 클릭은 해당 실행 카드로 부드럽게 스크롤·강조하며 상세보기 클릭 때만 기존03폭의 오른쪽 패널을 열고 닫는다. 메시지 입력·분석 제어는02에 고정한다.
+- 감지·수집·판단·분석·검증마다 다른 내용 구조를 제공한다. 수집9건은 실제9개 항목의 이름·출처·짧은 정보·상태를 보여야 하며, 분석과 결과 확인을 동일한 인용 목록만으로 대체하지 않는다. 재시도·모델 승격은 실행 ID로 정확히 연결한다.
+- 통합 채팅에 변경 요청 카드를 둔다: 상태 단계 표시, PR 링크·요약, 시험 결과, 이미지, 단계별 승격 버튼(부작용 + "정말 진행하시겠습니까?"), 단계 결과·원복 기록. 긴 diff·입출력 원문·기술 메타데이터는 상세 패널에서 열람한다.
+- 추가 계약과 U1~U8 검증 기준: `docs/plans/revamp/P18-incident-conversation-brief.md`. 이 항목은 계획이며 아직 새 화면 구현·배포를 의미하지 않는다.
 - 새 시스템 화면 주소: `http://<system>.<env>.localhost/`(traefik Ingress). order 시스템 화면은 order 서비스 정적 페이지로 추가한다.
 
 ## 작업 분할
@@ -60,6 +64,7 @@
 | W3 변경 요청·러너(B 계약) | `liveprobe/app/changes.py`·`change_api.py`·`change_models.py`, `alembic/versions/0010_*`, `scripts/liveprobe-runner.py`, `dashboard/src/{ChangeRequestCard.tsx, changes.ts}`, 테스트 | 위임 C |
 | W4 화면 일반화(D 계약) | `dashboard/src/{TopologyMap,mapModel,Overview,overviewModel,Incidents,labels}.*`, `dashboard/e2e/fixtures/**`, `mock-api.mjs`(overview 부분) | 위임 D |
 | W5 환경 기반·통합·배포·실연 | `deploy/environments/base/**`, 네트워크·RBAC·VAP·Prometheus 규칙, DB, main.py 연결, 빌드·배포, 실연·증거 | 부모 |
+| W6 통합 채팅형 장애 관제실(추가 요구) | `IncidentRoom.tsx`·흐름/채팅 이동·단계별 카드·상세 패널·스타일, `flowgraph.py`·`narrative`의 단계별 데이터 대응, 단위·모의·실화면 U1~U8 | 계획 편입·구현 미착수. W2/W3/W4와 데이터/카드 접점을 합의한 뒤 별도 수행 |
 
 ## 완료 판정 (인터뷰 성공 기준과 동일)
 1. 운영 관제 환경 선택지가 dev·stg·prd이고, 각 환경에 시스템 6개가 시스템 이름으로 묶인다. loadgen 등 다른 대상은 보이지 않는다.
@@ -72,3 +77,4 @@
    - dev → stg → prd를 각각 승인·검증하며, 승인마다 부작용 확인을 거친다.
    - 실패한 단계는 원복한다.
 4. 기존 회귀(pytest·화면 단위·모의/실배포 브라우저)가 통과한다.
+5. 추가 통합 관제실 U1~U8을 통과한다. 01→02 정확한 실행 카드 이동, 9개 수집 항목 요약, 역할 고유 결론/검증 결과, 필요 시 상세 열기·닫기와 초안 보존, 02 메시지 입력, 모바일/키보드/움직임 감소 및 승인 안전 회귀를 실화면으로 확인한다.

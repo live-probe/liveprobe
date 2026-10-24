@@ -736,6 +736,7 @@ def alert_signal(alert: dict, cfg, kube) -> Signal | None:
     return None
 
 
+@app.post("/api/alerts", dependencies=[Depends(require_webhook)])
 @app.post("/api/hooks/alertmanager", dependencies=[Depends(require_webhook)])
 async def alertmanager_hook(request: Request):
     payload = await request.json()

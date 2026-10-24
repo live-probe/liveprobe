@@ -28,9 +28,9 @@ test('장애 위치는 환경·시스템·서비스를 표시하고 누락 필�
 test('미관측 환경은 0으로 꾸미지 않고 준비 파드와 진행 중 장애를 구분한다', () => {
   assert.equal(typeof model.environmentSummary, 'function');
   const envs = model.environmentOptions(overview());
-  assert.equal(model.environmentSummary(envs[0]), '파드 7/7 · 진행 중 장애 0건');
+  assert.equal(model.environmentSummary(envs[0]), '준비 파드 7/7 · 진행 중 장애 0건');
   assert.equal(model.environmentSummary(envs[1]), '미관측');
-  assert.equal(model.environmentSummary({ ...envs[0], pods_ready: null, open_incidents: null }), '파드 미관측/7 · 진행 중 장애 미관측');
+  assert.equal(model.environmentSummary({ ...envs[0], pods_ready: null, open_incidents: null }), '준비 파드 미관측/7 · 진행 중 장애 미관측');
 });
 
 test('선택한 환경만 시스템별로 묶고 장애 시스템을 먼저 배치하며 미지정 시스템을 보존한다', () => {
