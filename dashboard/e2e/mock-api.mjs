@@ -50,7 +50,25 @@ const server = http.createServer(async (req,res) => {
   if(path==='/api/mock/reset' && method==='POST') changes.clear();
   if(path==='/api/mock/change' && method==='POST') {
     const id=changes.size+1;const c={id,incident_id:Number(body.incident_id),system:'payment',service:'payment',namespace_origin:'prd',status:'built',
-      patch_summary_ko:'예외 처리와 회귀 시험을 추가했습니다.',diff:'--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-bad\n+good\n--- /dev/null\n+++ b/tests/test_fix.py\n@@ -0,0 +1 @@\n+assert True\n',tests:{total:1,failed:0},build:{image:`local/payment:cr-${id}`,repository:'live-probe/payment'},stages:{},error:null,created_at:now(),updated_at:now()};changes.set(id,c);return send(c,201);
+      patch_summary_ko:'예외 처리와 회귀 시험을 추가했습니다.',diff:'--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-bad\n+good\n--- /dev/null\n+++ b/tests/test_fix.py\n@@ -0,0 +1 @@\n+assert True\n',tests:{total:1,failed:0},build:{image:`local/payment:cr-${id}`,repository:'live-probe/payment'},stages:{},error:null,created_at:now(),updated_at:now()};
+    // 서버(changes.py)가 실제로 남기는 단계 기록 모양을 그대로 재현한다.
+    const pass={ok:true,rollout:{status:'통과'},health:{status:'통과'},repro:{status:'미수행'},exceptions:{status:'통과',count:0}};
+    const verified=s=>({status:'verified',previous_image:'local/payment:base',new_image:c.build.image,started_at:now(),finished_at:now(),verification:pass,reverted:false,rollback:{},error:null});
+    if(body.fixture==='prd_blocked'||body.fixture==='prd_failed_unconfirmed'){
+      Object.assign(c.build,{pr_url:'https://github.com/live-probe/payment/pull/4',pr_number:4,head_sha:'b'.repeat(40),merge_sha:'c'.repeat(40),main_sha:'c'.repeat(40),merge_build:{image:'local/payment@sha256:'+'c'.repeat(64),commit:'c'.repeat(40)}});
+      c.stages={dev:verified('dev'),stg:verified('stg')};
+    }
+    if(body.fixture==='prd_blocked'){
+      const error='GitHub 병합 확인이 만료되어 실행 전에 중단했습니다. 병합 상태를 다시 확인한 뒤 승격하세요.';
+      Object.assign(c.build,{pr_state:'MERGED',review_completed:true});c.status='stg_verified';c.error=error;
+      c.stages.prd={status:'blocked',previous_image:'local/payment:base',new_image:c.build.merge_build.image,started_at:now(),finished_at:now(),verification:{},reverted:false,rollback:{status:'미수행'},error,blocked_reason:'github_merge_required'};
+    }
+    if(body.fixture==='prd_failed_unconfirmed'){
+      const error='단계 검증 실패';
+      Object.assign(c.build,{pr_state:'MERGED',review_completed:true});c.status='prd_failed';c.error=error;
+      c.stages.prd={status:'failed',previous_image:'local/payment:base',new_image:c.build.merge_build.image,started_at:now(),finished_at:now(),verification:{ok:false,rollout:{status:'통과'},health:{status:'실패'},repro:{status:'미수행'},exceptions:{status:'미관측'}},reverted:false,rollback:{ok:false,status:'미확정',error:'원복 상태를 확정하지 못했습니다. 사람이 확인해야 합니다.'},error};
+    }
+    changes.set(id,c);return send(c,201);
   }
   const changeMatch=path.match(/^\/api\/changes(?:\/(\d+)(?:\/(plan|promote|cancel))?)?$/);
   if(changeMatch) {

@@ -21,7 +21,14 @@ export const stageHeadingKo = (e:StageEntry) => ({verified:'검증 완료',faile
 export function rollbackKo(e:StageEntry):string {
   if (e.status==='blocked') return '변경이 없어 원복하지 않음';
   if (e.reverted) return '이전 이미지로 원복·검증 완료';
-  return e.rollback ? '원복 미확정 · 사람 확인 필요' : '해당 없음';
+  // 서버는 성공 단계에도 빈 rollback 기록을 남기므로 존재 여부가 아니라 단계 결과로 판단한다.
+  return e.status==='failed' ? '원복 미확정 · 사람 확인 필요' : '해당 없음';
+}
+// 단계 결과에 이미 표시된 오류는 카드 아래에 반복하지 않는다(실행 전 중단은 요청 실패가 아니다).
+export function cardErrorKo(c:ChangeRequest):string|null {
+  if (!c.error) return null;
+  const shown = Object.values(c.stages).some(e => e?.error === c.error);
+  return shown ? null : `요청 실패: ${c.error}`;
 }
 export function safePrUrl(b:ChangeBuild):string|null {
   const expected = `https://github.com/${b.repository}/pull/${b.pr_number}`;
