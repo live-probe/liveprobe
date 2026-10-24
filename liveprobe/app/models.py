@@ -22,7 +22,8 @@ class Base(DeclarativeBase):
 
 
 INCIDENT_OPEN_STATES = ("open", "analyzing", "action_pending", "acting")
-INCIDENT_CLOSED_STATES = ("resolved", "handed_off", "failed")
+# "closed" (P17): an operator ended an incident the AI already stopped on. It records a decision; nothing ran.
+INCIDENT_CLOSED_STATES = ("resolved", "handed_off", "failed", "closed")
 
 
 class Incident(Base):
@@ -32,6 +33,7 @@ class Incident(Base):
     family_hint: Mapped[str | None] = mapped_column(String(64))
     namespace: Mapped[str] = mapped_column(String(128))
     workload: Mapped[str] = mapped_column(String(255))
+    system: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(32), default="open", index=True)
     severity_level: Mapped[str | None] = mapped_column(String(32))  # SIMPLE | COMPLEX | HIGH_RISK
     title: Mapped[str] = mapped_column(Text, default="")

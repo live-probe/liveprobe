@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
 from pathlib import Path
@@ -28,10 +29,10 @@ def _payload(fields: dict) -> bytes:
 
 
 def issue(key: bytes, *, incident_id: int, action_id: int, name: str,
-          expected_revision: int, expected_source: str, now: int | None = None) -> dict:
+          expected_revision: int, expected_source: str, now: int | None = None, namespace: str = "liveprobe-target") -> dict:
     now = int(time.time()) if now is None else now
     fields = {"incident_id": incident_id, "action_id": action_id,
-              "name": name, "expected_revision": expected_revision,
+              "namespace": namespace, "name": name, "expected_revision": expected_revision,
               "expected_source": expected_source, "expires_at": now + TTL_SECONDS,
               "nonce": secrets.token_hex(16)}
     fields["grant"] = hmac.new(key, _payload(fields), hashlib.sha256).hexdigest()
@@ -40,11 +41,12 @@ def issue(key: bytes, *, incident_id: int, action_id: int, name: str,
 
 def verify(key: bytes, fields: dict, *, now: int | None = None) -> None:
     now = int(time.time()) if now is None else now
-    if (not isinstance(fields, dict) or set(fields) != {"incident_id", "action_id", "name",
+    if (not isinstance(fields, dict) or set(fields) != {"incident_id", "action_id", "namespace", "name",
             "expected_revision", "expected_source", "expires_at", "nonce", "grant"} or
             type(fields["incident_id"]) is not int or fields["incident_id"] <= 0 or
             type(fields["action_id"]) is not int or fields["action_id"] <= 0 or
-            fields["name"] not in ("inventory", "order") or
+            not isinstance(fields["namespace"], str) or not re.fullmatch(r"[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?", fields["namespace"]) or
+            not isinstance(fields["name"], str) or not re.fullmatch(r"[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?", fields["name"]) or
             type(fields["expected_revision"]) is not int or fields["expected_revision"] <= 0 or
             not isinstance(fields["expected_source"], str) or
             not fields["expected_source"].startswith(fields["name"] + "-") or

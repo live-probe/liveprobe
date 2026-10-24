@@ -125,7 +125,7 @@ def test_pod_watch_bookmark_advances_resource_version_without_reconnect():
     k = family1_kube()
     failing = k.pods[1]
     emitted: list[Signal] = []
-    w = Watchers(None, AppConfig(), emitted.append)
+    w = Watchers(None, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     core = _FakeCore([], "100", [[_bookmark("150")], [{"type": "MODIFIED", "object": _pod_obj(failing, "160")}]],
                      on_exhausted=w.stop)
     w.kube = _KubeWithCore(k, core)
@@ -138,7 +138,7 @@ def test_pod_watch_bookmark_advances_resource_version_without_reconnect():
 def test_pod_watch_410_relists_and_resumes_from_new_list_rv():
     k = family1_kube()
     emitted: list[Signal] = []
-    w = Watchers(None, AppConfig(), emitted.append)
+    w = Watchers(None, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     list_items = [_pod_obj(k.pods[1], "90")]
     core = _FakeCore(list_items, ["100", "500"], [[_gone()]], on_exhausted=w.stop)
     w.kube = _KubeWithCore(k, core)
@@ -158,7 +158,7 @@ def test_pod_watch_410_relists_and_resumes_from_new_list_rv():
 def test_event_watch_410_relists_without_replaying_history():
     k = family1_kube()
     emitted: list[Signal] = []
-    w = Watchers(None, AppConfig(), emitted.append)
+    w = Watchers(None, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     old_event = {"metadata": {"name": "old", "resourceVersion": "10"}, "type": "Warning", "reason": "BackOff",
                  "message": "Back-off pulling image", "involvedObject": {"kind": "Pod", "name": "inventory-bbb-1"}}
     core = _FakeCore([old_event], "100", [[_gone()]], on_exhausted=w.stop)
@@ -172,7 +172,7 @@ def test_event_watch_410_relists_without_replaying_history():
 
 def test_watch_transport_error_is_reported_and_retried_with_backoff():
     k = family1_kube()
-    w = Watchers(None, AppConfig(), lambda s: None)
+    w = Watchers(None, AppConfig(target_namespace="liveprobe-target", ), lambda s: None)
     from kubernetes.client import ApiException
     core = _FakeCore([], "100", [ApiException(status=500, reason="boom")], on_exhausted=w.stop)
     w.kube = _KubeWithCore(k, core)
@@ -193,7 +193,7 @@ def test_event_for_recreated_pod_with_same_name_is_ignored():
     k = family1_kube()
     k.pods[1]["metadata"]["uid"] = "new-uid"
     emitted: list[Signal] = []
-    w = Watchers(k, AppConfig(), emitted.append)
+    w = Watchers(k, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     ev = {"type": "Warning", "reason": "BackOff", "message": "Back-off pulling image \"x\"",
           "involvedObject": {"kind": "Pod", "name": "inventory-bbb-1", "uid": "old-uid"}}
     w.handle_event(ev)
@@ -211,17 +211,17 @@ def test_owner_chain_wins_over_name_and_unowned_pods_are_not_guessed():
     k.pods.append(mk_pod("inventory-bare", "inventory", None, waiting="ImagePullBackOff"))       # no owner
     k.pods.append(mk_pod("inventory-orphan-1", "inventory", "gone-rs", waiting="ImagePullBackOff"))  # RS missing
     emitted: list[Signal] = []
-    w = Watchers(k, AppConfig(), emitted.append)
+    w = Watchers(k, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     for p in k.pods[3:]:
         w.handle_pod(p)
     assert [s.name for s in emitted] == ["order"]
     alert = {"status": "firing", "labels": {"alertname": "TargetWorkloadImagePullFailing", "namespace": NS,
                                             "pod": "inventory-bare"}}
-    assert alert_signal(alert, AppConfig(), k) is None
+    assert alert_signal(alert, AppConfig(target_namespace="liveprobe-target", ), k) is None
 
 
 def test_ambiguous_caller_5xx_is_not_merged_into_a_guessed_callee():
-    cfg = AppConfig(dependencies={"order": ["inventory", "payments"]})
+    cfg = AppConfig(target_namespace="liveprobe-target", dependencies={"order": ["inventory", "payments"]})
     from app.incidents import fingerprint
     assert fingerprint(Signal(NS, "App", "order", "OrderHigh5xxRate", "alertmanager"), cfg) == (f"{NS}/order", "order")
 
@@ -233,13 +233,13 @@ def _count(s, fp=f"{NS}/inventory"):
 
 def _alert_sig(k, name="TargetWorkloadImagePullFailing"):
     return alert_signal({"status": "firing", "labels": {"alertname": name, "namespace": NS,
-                                                        "pod": "inventory-bbb-1"}}, AppConfig(), k)
+                                                        "pod": "inventory-bbb-1"}}, AppConfig(target_namespace="liveprobe-target", ), k)
 
 
 @needs_db
 @pytest.mark.parametrize("order", ["watch_first", "webhook_first"])
 def test_webhook_and_watch_in_either_order_make_one_incident(db_url, order):
-    cfg, k = AppConfig(), family1_kube()
+    cfg, k = AppConfig(target_namespace="liveprobe-target", ), family1_kube()
     watch_sigs: list[Signal] = []
     Watchers(k, cfg, watch_sigs.append).handle_pod(k.pods[1])
     sigs = [watch_sigs[0], _alert_sig(k)]
@@ -263,7 +263,7 @@ def test_webhook_and_watch_in_either_order_make_one_incident(db_url, order):
 
 @needs_db
 def test_out_of_order_caller_5xx_then_dependency_signal(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     with db.session() as s:
         assert ingest(s, cfg, Signal(NS, "App", "order", "OrderHigh5xxRate", "alertmanager"), now)[1] == "suppressed"
@@ -281,7 +281,7 @@ def test_out_of_order_caller_5xx_then_dependency_signal(db_url):
 @needs_db
 def test_concurrent_webhook_and_watch_sessions_create_exactly_one_incident(db_url):
     """Two sessions (webhook thread + watch thread) must not both miss each other's uncommitted insert."""
-    cfg, k = AppConfig(), family1_kube()
+    cfg, k = AppConfig(target_namespace="liveprobe-target", ), family1_kube()
     first_flushed = threading.Event()
     results: dict[str, str] = {}
     errors: list[BaseException] = []
@@ -319,7 +319,7 @@ def test_concurrent_webhook_and_watch_sessions_create_exactly_one_incident(db_ur
 
 @needs_db
 def test_many_concurrent_duplicate_signals_stay_one_incident(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     barrier = threading.Barrier(8)
     outcomes: list[str] = []
     lock = threading.Lock()
@@ -346,7 +346,7 @@ def test_many_concurrent_duplicate_signals_stay_one_incident(db_url):
 
 @needs_db
 def test_restart_relist_merges_into_surviving_open_incident(db_url):
-    cfg, k = AppConfig(), family1_kube()
+    cfg, k = AppConfig(target_namespace="liveprobe-target", ), family1_kube()
     now = datetime.now(timezone.utc)
     with db.session() as s:
         first, _ = ingest(s, cfg, Signal(NS, "Deployment", "inventory", "ImagePullBackOff", "pod_watch"), now)
@@ -363,7 +363,7 @@ def test_restart_relist_merges_into_surviving_open_incident(db_url):
 
 @needs_db
 def test_distinct_workloads_are_never_merged(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     with db.session() as s:
         a, _ = ingest(s, cfg, Signal(NS, "Deployment", "inventory", "ImagePullBackOff", "pod_watch"), now)
@@ -374,10 +374,10 @@ def test_distinct_workloads_are_never_merged(db_url):
 def test_endpoint_poller_family4_signal_matches_webhook_fingerprint():
     k = family4_kube()
     sigs: list[Signal] = []
-    w = Watchers(k, AppConfig(), sigs.append)
+    w = Watchers(k, AppConfig(target_namespace="liveprobe-target", ), sigs.append)
     w.poll_endpoints_once(now=0)
     w.poll_endpoints_once(now=31)
     alert = alert_signal({"status": "firing", "labels": {"alertname": "TargetServiceNoEndpoints", "namespace": NS,
-                                                         "endpoint": "inventory"}}, AppConfig(), k)
+                                                         "endpoint": "inventory"}}, AppConfig(target_namespace="liveprobe-target", ), k)
     from app.incidents import fingerprint
-    assert fingerprint(sigs[0], AppConfig()) == fingerprint(alert, AppConfig())
+    assert fingerprint(sigs[0], AppConfig(target_namespace="liveprobe-target", )) == fingerprint(alert, AppConfig(target_namespace="liveprobe-target", ))

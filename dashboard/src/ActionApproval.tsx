@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { request, type Action, type Incident } from './api';
+import { ApiError, request, type Action, type Incident } from './api';
+import { CLOSE_EFFECTS, CLOSE_REASON_MAX, closeConfirmText, closeErrorKo, closeReasonError } from './closeIncident';
 import { ACTION_KO } from './labels';
 import { actionChanges } from './narrative';
 import { ErrorBox } from './ui';
@@ -46,5 +47,39 @@ export function HandoffCard({ incident: i, onChange }: { incident: Incident; onC
     {h.claimed_by ? <p className="muted">인수: {h.claimed_by}</p> : <button className="btn primary" type="button" disabled={busy} onClick={() => void claim()}>인계 인수</button>}
     <p className="muted">인수는 담당 기록일 뿐 클러스터 변경을 허가하지 않습니다. 변경은 아래 대화로 지시하면 계획과 부작용을 확인한 뒤 진행합니다.</p>
     <ErrorBox>{error}</ErrorBox>
+  </article>;
+}
+
+/** Operator close: ends an incident the AI already stopped on. Records a decision only; never changes the cluster. */
+export function CloseCard({ incident: i, blocked, onChange }: { incident: Incident; blocked: string; onChange: () => void }) {
+  const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const invalid = closeReasonError(reason);
+  async function close() {
+    if (busy || blocked || invalid) { setError(blocked || invalid); return; }
+    if (!window.confirm(closeConfirmText(i.id, reason))) return;
+    setBusy(true); setError('');
+    try { await request(`/incidents/${i.id}/close`, { method: 'POST', body: JSON.stringify({ reason: reason.trim(), confirm: true }) }); setReason(''); onChange(); }
+    catch (e) { setError(e instanceof ApiError ? closeErrorKo(e.status, e.message) : closeErrorKo(0, '')); onChange(); }
+    finally { setBusy(false); }
+  }
+  return <article className="decision-card close-card" aria-label="장애 종료">
+    <header><b>장애 종료</b><span className="badge" role="status">운영자 결정</span></header>
+    <p>원인을 확인했고 더 할 일이 없다면 이 장애를 종료합니다.</p>
+    <ul className="close-effects">{CLOSE_EFFECTS.map(e => <li key={e}>{e}</li>)}</ul>
+    <label className="close-reason"><span>종료 사유 <small className="faint">(필수, {CLOSE_REASON_MAX}자 이하)</small></span>
+      <textarea rows={2} maxLength={CLOSE_REASON_MAX} value={reason} placeholder="예: 대상 정상 확인, 메모리 한도 변경 불필요" onChange={e => setReason(e.target.value)} disabled={busy} /></label>
+    {blocked && <p className="notice" role="status">{blocked}</p>}
+    <div className="confirm-gate"><strong>확인 후 종료할까요?</strong><div className="inline"><button className="btn primary" type="button" disabled={busy || !!blocked || !!invalid} onClick={() => void close()}>{busy ? '종료 중' : '장애 종료'}</button></div></div>
+    <ErrorBox>{error}</ErrorBox>
+  </article>;
+}
+
+/** After an operator close: the decision record, read-only. */
+export function ClosedCard({ incident: i }: { incident: Incident }) {
+  const h = (i.handoff ?? {}) as { closed_by?: string; closed_at?: string; close_reason?: string };
+  return <article className="decision-card closed-card" aria-label="운영자 종료 기록">
+    <header><b>운영자 종료</b><span className="badge" role="status">종료됨</span></header>
+    <dl className="kv"><dt>종료한 운영자</dt><dd>{h.closed_by ?? '기록 없음'}</dd><dt>종료 시각</dt><dd>{h.closed_at ? new Date(h.closed_at).toLocaleString('ko-KR') : '기록 없음'}</dd><dt>사유</dt><dd>{h.close_reason ?? '기록 없음'}</dd></dl>
+    <p className="muted">클러스터는 변경하지 않았습니다. 이 장애에는 더 이상 지시를 받지 않으며, 같은 증상이 다시 감지되면 새 장애로 접수됩니다.</p>
   </article>;
 }

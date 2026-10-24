@@ -25,6 +25,8 @@ CATALOG: dict[str, tuple[str, tuple[str, ...]]] = {
 }
 ACTION_TYPES = tuple(CATALOG)
 
+from .remediation import REMEDIATION_RULES
+
 ACTION_RULES = (
     "Kubernetes actions you may propose (at most one, only when it fixes the VERIFIED cause; otherwise hand off): "
     "rollout_undo (previous revision; for a bad image/config rollout), rollout_restart (restart pods; for a stuck or "
@@ -50,7 +52,7 @@ def bounds_text(cfg: Any) -> str:
     """Approved limits, stated to the agent so it proposes only values the executor will accept."""
     p = cfg.safe_actions
     return (f"Approved bounds: replicas {p.replicas_min}..{p.replicas_max}; memory limit {p.memory_limit_min_mi}..{p.memory_limit_max_mi}Mi "
-            f"(never below the memory request); only Deployments {list(p.deployments)}. Current limits/requests are in the "
+            f"(never below the memory request); only managed Deployments in {cfg.target_namespaces}, with a non-empty matching system label. Current limits/requests are in the "
             f"Deployment evidence under `resources`. For OOMKilled, raise the limit to the smallest allowed value that "
             f"clearly exceeds the current one (no more than 2x); if the limit is already at the maximum, hand off.")
 

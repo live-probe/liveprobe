@@ -68,7 +68,23 @@ class NetworkSignalAdapter:
                 raise TimeoutError("network poll deadline exceeded") from None
             errors.append({"stage": stage, "error": type(exc).__name__})
 
-        ns = self.cfg.target_namespace
+        targets: dict[str, str] = {}
+        errors = []
+        for ns in self.cfg.target_namespaces:
+            part, failures = self._targets_namespace(ns, deadline)
+            targets.update(part)
+            errors.extend(failures)
+        return targets, errors
+
+    def _targets_namespace(self, ns: str, deadline: float):
+        # The owner resolution and Service selector joins stay namespace-local.
+        errors = []
+        def read(method, *args):
+            if time.monotonic() >= deadline:
+                raise TimeoutError("network poll deadline exceeded")
+            return method(*args)
+        def error(stage, exc):
+            errors.append({"stage": stage, "error": type(exc).__name__})
         targets: dict[str, str] = {}
         pods = [p for p in read(self.kube.list_pods, ns)
                 if (p.get("metadata") or {}).get("namespace", ns) == ns
@@ -231,7 +247,7 @@ class NetworkSignalAdapter:
                 continue
             # One signal per path, preferring the affected destination when both are targets.
             target = dst if dst in workloads else src
-            sig = Signal(self.cfg.target_namespace, "Deployment", target.split("/", 2)[2],
+            sig = Signal(target.split("/", 2)[0], "Deployment", target.split("/", 2)[2],
                          "NetworkDrop", "hubble", {
                              "from": src, "to": dst, "dropped": edge.dropped, "errors": edge.error,
                              "drop_reasons": dict(edge.drop_reasons), "last_seen": edge.last_ts,

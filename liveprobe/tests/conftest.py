@@ -62,7 +62,7 @@ def mk_rs(name: str, dep: str, rev: int, image: str, replicas: int = 1, availabl
 
 def mk_dep(name: str, rev: int, image: str, replicas: int = 1, status: dict | None = None) -> dict:
     return {"metadata": {"name": name, "annotations": {"deployment.kubernetes.io/revision": str(rev)},
-                         "generation": 3},
+                         "generation": 3, "labels": {"app.kubernetes.io/part-of": "liveprobe-target", "liveprobe.io/managed": "true"}},
             "spec": {"replicas": replicas, "selector": {"matchLabels": {"app": name}},
                      "template": mk_template(image, name)},
             "status": status or {"observedGeneration": 3, "replicas": replicas, "updatedReplicas": replicas,

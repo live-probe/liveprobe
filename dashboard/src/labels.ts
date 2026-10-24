@@ -1,6 +1,11 @@
 // Korean labels shared by every screen (pure, no React). The server sends Korean names too; these are the fallback
 // so a bare role id or status code never reaches the operator.
 
+/** Preserve legacy namespace/workload identity when environment metadata is absent. */
+export function placeKo(environment: string | null | undefined, system: string | null | undefined, workload: string | null | undefined, namespace?: string | null): string {
+  if (environment || system) return [environment, system, workload].filter(Boolean).join(' · ');
+  return [namespace, workload].filter(Boolean).join('/') || '위치 미관측';
+}
 export const ROLE_KO: Record<string, string> = {
   router: '사건 수준 판단', signal_analyst: '신호 분석', result_verifier: '결과 확인', coordinator: '진행 조정',
   k8s_analyst: '쿠버네티스 분석', log_summarizer: '로그 요약', group_verifier: '결과 확인',
@@ -18,17 +23,18 @@ export const levelTone = (level: string | null | undefined): Tone =>
   level === 'HIGH_RISK' || level === 'COMPLEX' ? 'danger' : level === 'NORMAL' || level === 'SIMPLE' ? 'warn' : 'muted';
 
 export const INCIDENT_STATUS_KO: Record<string, string> = {
-  open: '접수', analyzing: '분석 중', action_pending: '승인 대기', acting: '조치 중', resolved: '자동 복구 완료', handed_off: '운영자 인계', failed: '처리 실패',
+  open: '접수', analyzing: '분석 중', action_pending: '승인 대기', acting: '조치 중', resolved: '자동 복구 완료', handed_off: '운영자 인계', failed: '처리 실패', closed: '운영자 종료',
 };
 export const incidentStatusKo = (s: string) => INCIDENT_STATUS_KO[s] ?? '상태 미확인';
 export const incidentStatusTone = (s: string): Tone =>
-  s === 'resolved' ? 'ok' : s === 'failed' ? 'danger' : s === 'handed_off' || s === 'action_pending' ? 'warn' : 'info';
+  s === 'resolved' ? 'ok' : s === 'failed' ? 'danger' : s === 'handed_off' || s === 'action_pending' ? 'warn' : s === 'closed' ? 'muted' : 'info';
 
 /** AI stage when the server did not send one: derived from the incident status only. */
 export const STAGE_FROM_STATUS: Record<string, { key: string; label: string }> = {
   open: { key: 'routing', label: '사건 수준 판단 중' }, analyzing: { key: 'analyzing', label: '에이전트 분석 중' },
   action_pending: { key: 'acting', label: '운영자 승인 대기' }, acting: { key: 'acting', label: '조치 실행 중' },
   resolved: { key: 'resolved', label: '자동 복구 완료' }, handed_off: { key: 'handed_off', label: '운영자 인계' }, failed: { key: 'failed', label: '처리 실패' },
+  closed: { key: 'closed', label: '운영자 종료' },
 };
 export const stageTone = (key: string | null | undefined): Tone =>
   key === 'resolved' ? 'ok' : key === 'failed' ? 'danger' : key === 'handed_off' ? 'warn' : 'info';

@@ -16,7 +16,7 @@ const groups = {
 function reset() {
   narratives = new Map([971,987,990,976,1976].map(id => [id, fixture(`narrative-${id}`)]));
   eventLogs = new Map([...narratives.keys()].map(id => [id, fixture(`events-${id}`)]));
-  overview = fixture('overview'); commands = new Map(); nextId = 1; automationMode = 'approval'; actions = new Map();
+  overview = fixture('overview-envs'); commands = new Map(); nextId = 1; automationMode = 'approval'; actions = new Map();
   const draft = { router: role('gpt-6-luna','low'), groups: clone(groups) };
   modelSettings = { revision: 0, source: 'config', provider: 'codex_cli', editable: true, ...draft, defaults: clone(draft), catalog: ['gpt-6-luna','gpt-6.1-sol','gpt-6-astra'].map(model => ({ model, efforts: ['low','medium','high','xhigh'] })), limits: { model_ladder: ['gpt-6-luna','gpt-6.1-sol','gpt-6-astra'], max_cost_usd: { NORMAL:1.3,COMPLEX:2.3 } } };
 }
@@ -35,6 +35,7 @@ function createCommand(id, instruction) {
   const c = { id: nextId++, incident_id:id, instruction, status:'planning', ...plan, plan_sha256:hash, confirm_question:'정말 진행하시겠습니까?', result:null, verification:null, rollback:null, error:null, created_at:now(), updated_at:now() };
   commands.set(c.id,c); return c;
 }
+const changes = new Map(); // P18 mock-only change state; no GitHub or cluster transport.
 const server = http.createServer(async (req,res) => {
   const u = new URL(req.url,'http://127.0.0.1'); const path = u.pathname; const method = req.method;
   const send = (value, status=200) => { res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value)); };
@@ -45,6 +46,25 @@ const server = http.createServer(async (req,res) => {
     let text=''; for await (const chunk of req) { text+=chunk; if(text.length>64000) return send({detail:'본문이 너무 큽니다.'},413); }
     try { body=text?JSON.parse(text):{}; } catch { return send({detail:'요청 형식을 확인하세요.'},400); }
   }
+  // P18 changes block: intentionally independent of overview fixtures.
+  if(path==='/api/mock/reset' && method==='POST') changes.clear();
+  if(path==='/api/mock/change' && method==='POST') {
+    const id=changes.size+1;const c={id,incident_id:Number(body.incident_id),system:'payment',service:'payment',namespace_origin:'prd',status:'built',
+      patch_summary_ko:'예외 처리와 회귀 시험을 추가했습니다.',diff:'--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-bad\n+good\n--- /dev/null\n+++ b/tests/test_fix.py\n@@ -0,0 +1 @@\n+assert True\n',tests:{total:1,failed:0},build:{image:`local/payment:cr-${id}`,repository:'live-probe/payment'},stages:{},error:null,created_at:now(),updated_at:now()};changes.set(id,c);return send(c,201);
+  }
+  const changeMatch=path.match(/^\/api\/changes(?:\/(\d+)(?:\/(plan|promote|cancel))?)?$/);
+  if(changeMatch) {
+    const advanceChange=c=>{if(c.status.endsWith('_deploying')&&Date.now()-Date.parse(c.updated_at)>500){const stage=c.status.split('_')[0];c.status=stage+'_verified';c.stages[stage]={...c.stages[stage],status:'verified',finished_at:now(),verification:{ok:true,rollout:{status:'통과'},health:{status:'통과'},repro:{status:'미수행'},exceptions:{status:'통과',count:0}},reverted:false};}return c;};
+    if(!changeMatch[1])return send({items:[...changes.values()].filter(c=>!u.searchParams.has('incident_id')||c.incident_id===Number(u.searchParams.get('incident_id'))).map(advanceChange)});
+    const c=changes.get(Number(changeMatch[1]));if(!c)return send({detail:'변경 요청을 찾지 못했습니다.'},404);advanceChange(c);const action=changeMatch[2];if(!action)return send(c);
+    const stage=action==='plan'?u.searchParams.get('stage'):body.stage;
+    if(action==='cancel'&&method==='POST'){if(c.status.endsWith('_deploying'))return send({detail:'검증 중입니다.'},409);c.status='cancelled';return send(c);}
+    if(c.status!==({dev:'built',stg:'dev_verified',prd:'stg_verified'})[stage])return send({detail:'단계 순서를 확인하세요.'},409);
+    const plan={stage,namespace:stage,deployment:c.service,container:c.service,previous_image:'local/payment:base',new_image:c.build.image,side_effects_ko:[`${stage} 환경 이미지 변경 및 파드 재시작, 중단 가능성이 있습니다.`],rollback_ko:'이전 이미지로 자동 원복하고 확인합니다.'};plan.plan_sha256=createHash('sha256').update(JSON.stringify(plan)).digest('hex');
+    if(action==='plan')return send(plan);
+    if(action==='promote'&&method==='POST'){if(body.confirm!==true)return send({detail:'명시적 확인이 필요합니다.'},422);if(body.plan_sha256!==plan.plan_sha256)return send({detail:'계획 해시 불일치'},409);c.status=stage+'_deploying';c.updated_at=now();c.stages[stage]={status:'executing',previous_image:plan.previous_image,new_image:plan.new_image,started_at:now(),reverted:false};return send(c);}
+  }
+  // End P18 changes block.
   if(path==='/api/mock/reset' && method==='POST'){reset();return send({ok:true});}
   // 시험 전용: 승인 대기 자동 조치 한 건을 만든다(실제 엔진의 approval 정책 결과와 같은 모양).
   if(path==='/api/mock/pending-action' && method==='POST'){const id=Number(body.incident_id);const n=narratives.get(id);if(!n)return send({detail:'장애를 찾지 못했습니다.'},404);const a={id:700+actions.size,incident_id:id,type:'scale_replicas',target:`Deployment/${n.incident.workload}`,params:{replicas:2},policy_mode:'approval',status:'pending_approval',reason:'레플리카 부족으로 응답 지연이 관측되었습니다.',executed:false,created_at:now(),updated_at:now()};actions.set(a.id,a);n.incident.status='action_pending';return send(a,201);}
@@ -58,6 +78,8 @@ const server = http.createServer(async (req,res) => {
   }
   const claimMatch=path.match(/^\/api\/incidents\/(\d+)\/handoff\/claim$/);
   if(claimMatch&&method==='POST'){const n=narratives.get(Number(claimMatch[1]));if(!n)return send({detail:'장애를 찾지 못했습니다.'},404);if(n.incident.status!=='handed_off')return send({detail:'incident is not handed off'},409);n.incident.handoff={...(n.incident.handoff??{}),claimed_by:'operator',claimed_at:now()};return send(n.incident.handoff);}
+  const closeMatch=path.match(/^\/api\/incidents\/(\d+)\/close$/);
+  if(closeMatch&&method==='POST'){const n=narratives.get(Number(closeMatch[1]));if(!n)return send({detail:'장애를 찾지 못했습니다.'},404);const reason=String(body.reason||'').trim();if(body.confirm!==true||!reason||reason.length>500)return send({detail:'reason must be 1-500 characters'},422);const h=n.incident.handoff??{};if(n.incident.status==='closed')return send({id:n.incident.id,status:'closed',closed_by:h.closed_by,closed_at:h.closed_at,close_reason:h.close_reason,closed_from:h.closed_from,cluster_changed:false});if(!['handed_off','action_pending'].includes(n.incident.status))return send({detail:`incident is ${n.incident.status}; only a hand-off or a stale approval can be closed`},409);if([...actions.values()].some(a=>a.incident_id===n.incident.id&&a.status==='pending_approval'))return send({detail:'an action is still pending or running; approve or reject it first'},409);if([...commands.values()].some(c=>c.incident_id===n.incident.id&&['planning','awaiting_confirmation','awaiting_secret','executing','rolling_back'].includes(c.status)))return send({detail:'an operator command is still in progress; finish or cancel it first'},409);const from=n.incident.status;n.incident.status='closed';n.incident.closed_at=now();n.incident.updated_at=now();n.incident.status_reason=`운영자 종료: ${reason}`;n.incident.handoff={...h,closed_by:'local-operator',closed_at:now(),close_reason:reason,closed_from:from};n.headline.stage={key:'closed',label:'운영자 종료'};n.headline.next='운영자가 종료했습니다. 클러스터는 변경하지 않았고 이 장애에는 더 이상 지시를 받지 않습니다.';const o=n.flow.nodes.find(x=>x.id==='outcome');if(o){o.label='운영자 종료';o.status='done';}append(n.incident.id,'completed',`운영자 종료: ${reason}`,{outcome:'closed',previous_status:from});return send({id:n.incident.id,status:'closed',closed_by:'local-operator',closed_at:n.incident.handoff.closed_at,close_reason:reason,closed_from:from,cluster_changed:false});}
   const incidentMatch=path.match(/^\/api\/incidents\/(\d+)(?:\/(narrative|events|messages|commands|control))?$/);
   if(incidentMatch){
     const id=Number(incidentMatch[1]), action=incidentMatch[2], n=narratives.get(id);if(!n)return send({detail:'장애를 찾지 못했습니다.'},404);

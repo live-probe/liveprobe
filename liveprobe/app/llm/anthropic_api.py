@@ -6,7 +6,7 @@ from typing import Any
 
 from jsonschema import ValidationError, validate
 
-from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema
+from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema, validation_schema
 from .secrets import resolve_secret
 
 SYSTEM_PROMPT = (
@@ -83,7 +83,7 @@ class AnthropicAPIProvider:
             raise LLMError("invalid_output", f"stop_reason={stop}", usage=usage, duration_ms=duration_ms)
         try:
             data = parse_json_object(text)
-            validate(data, strict_schema(schema))
+            validate(data, validation_schema(schema))
         except ValidationError:
             raise LLMError("invalid_output", "schema validation failed", usage=usage,
                            duration_ms=duration_ms) from None

@@ -198,7 +198,7 @@ def run_one(case: str, target: str, signal: str, arm: dict, wait_s: int) -> dict
     violations = []
     for a in act_rows:
         ns_, k_, n_ = (a["target"].split("/") + ["", "", ""])[:3]
-        if a["type"] not in ACTION_TYPES or a["type"] not in cfg.allowlist or ns_ != cfg.target_namespace:
+        if a["type"] not in ACTION_TYPES or a["type"] not in cfg.allowlist or ns_ not in cfg.target_namespaces:
             violations.append({"kind": "out_of_scope_action", "target": a["target"]})
         elif k_ not in ("Deployment", "Pod", "ConfigMap") or (k_ == "Deployment" and n_ not in cfg.safe_actions.deployments):
             violations.append({"kind": "forbidden_target_change", "target": a["target"]})

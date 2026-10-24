@@ -2,7 +2,7 @@
 import type { Incident } from './api';
 import { levelKo } from './labels.ts';
 
-export type AlertEvent = { id: number; kind: 'new' | 'escalated' | 'resolved'; title: string; level: Incident['severity_level']; workload: string; namespace: string };
+export type AlertEvent = { id: number; kind: 'new' | 'escalated' | 'resolved' | 'closed'; title: string; level: Incident['severity_level']; workload: string; namespace: string };
 const OPEN = new Set(['open', 'analyzing', 'action_pending', 'acting', 'handed_off']);
 const RANK: Record<string, number> = { SIMPLE: 0, NORMAL: 1, COMPLEX: 2, HIGH_RISK: 3 };
 
@@ -15,7 +15,7 @@ export function diffAlerts(prev: Incident[] | null, next: Incident[]): AlertEven
     const was = before.get(i.id);
     const base = { id: i.id, title: i.title, level: i.severity_level, workload: i.workload, namespace: i.namespace };
     if (!was) { if (OPEN.has(i.status)) out.push({ ...base, kind: 'new' }); continue; }
-    if (OPEN.has(was.status) && !OPEN.has(i.status)) out.push({ ...base, kind: 'resolved' });
+    if (OPEN.has(was.status) && !OPEN.has(i.status)) out.push({ ...base, kind: i.status === 'closed' ? 'closed' : 'resolved' });
     else if (OPEN.has(i.status) && (RANK[i.severity_level ?? ''] ?? 0) > (RANK[was.severity_level ?? ''] ?? 0)) out.push({ ...base, kind: 'escalated' });
   }
   return out;
@@ -23,7 +23,7 @@ export function diffAlerts(prev: Incident[] | null, next: Incident[]): AlertEven
 
 export function alertText(a: AlertEvent): string {
   const lv = a.level ? ` · ${levelKo(a.level)}` : '';
-  return a.kind === 'new' ? `새 사건: ${a.workload}${lv}` : a.kind === 'escalated' ? `사건 수준 상승: ${a.workload}${lv}` : `해결됨: ${a.workload}`;
+  return a.kind === 'new' ? `새 사건: ${a.workload}${lv}` : a.kind === 'escalated' ? `사건 수준 상승: ${a.workload}${lv}` : a.kind === 'closed' ? `운영자 종료: ${a.workload}` : `해결됨: ${a.workload}`;
 }
 
 // ---------------------------------------------------------------- run feed
@@ -56,7 +56,7 @@ export function buildFeed(events: RunEvent[]): FeedItem[] {
         causes: (d.root_cause_candidates ?? []).map((c: any) => ({ cause: String(c.cause ?? ''), confidence: Number(c.confidence ?? 0), refs: c.evidence_refs ?? [] })) }); break;
       case 'paused': case 'resumed': case 'stopped': case 'note': case 'status': out.push({ type: 'status', seq: e.seq, at: e.at, text: e.summary }); break;
       case 'completed': out.push({ type: 'step', seq: e.seq, at: e.at, kind: e.kind, title: STEP_TITLE.completed, body: e.summary,
-        tone: d.outcome === 'resolved' ? 'ok' : d.outcome === 'failed' ? 'danger' : 'warn' }); break;
+        tone: d.outcome === 'resolved' || d.outcome === 'closed' ? 'ok' : d.outcome === 'failed' ? 'danger' : 'warn' }); break;
       case 'action_executed': out.push({ type: 'step', seq: e.seq, at: e.at, kind: e.kind, title: STEP_TITLE[e.kind], body: e.summary, tone: d.status === 'succeeded' ? 'ok' : 'danger' }); break;
       case 'verification_result': out.push({ type: 'step', seq: e.seq, at: e.at, kind: e.kind, title: STEP_TITLE[e.kind], body: e.summary, tone: d.ok ? 'ok' : 'danger' }); break;
       default: out.push({ type: 'step', seq: e.seq, at: e.at, kind: e.kind, title: STEP_TITLE[e.kind] ?? e.kind, body: e.summary, tone: TONE[e.kind] ?? 'info' });
@@ -65,5 +65,5 @@ export function buildFeed(events: RunEvent[]): FeedItem[] {
   return out;
 }
 
-export const FINISHED = new Set(['resolved', 'handed_off', 'failed']);
+export const FINISHED = new Set(['resolved', 'handed_off', 'failed', 'closed']);
 export function canSteer(status: string): boolean { return !FINISHED.has(status); }

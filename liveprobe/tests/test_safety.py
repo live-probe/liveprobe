@@ -14,7 +14,7 @@ TARGET = f"{NS}/Deployment/inventory"
 
 
 def test_non_allowlisted_and_outside_namespace_denied():
-    cfg, k = AppConfig(), family1_kube()
+    cfg, k = AppConfig(target_namespace="liveprobe-target", ), family1_kube()
     with pytest.raises(Denied, match="allowlist"):
         check_action(cfg, k, "delete_deployment", NS, "Deployment", "inventory")
     with pytest.raises(Denied, match="target namespace"):
@@ -37,7 +37,7 @@ def test_previous_revision_is_different_template_and_owned():
 
 
 def seed(s, *, level="SIMPLE", action_type="rollout_undo", target=TARGET, status="proposed"):
-    i = Incident(fingerprint="f", namespace=NS, workload="inventory", severity_level=level,
+    i = Incident(fingerprint="f", namespace=NS, workload="inventory", system="liveprobe-target", severity_level=level,
                  title="test", status="open", signal_reasons=[])
     s.add(i)
     s.flush()
@@ -57,7 +57,7 @@ def test_denials_persist_audit_and_never_patch(db_url, level, action_type, targe
     k = family1_kube()
     with db.session() as s:
         aid = seed(s, level=level, action_type=action_type, target=target)
-    result = execute(db.session, AppConfig(), k, aid, "test")
+    result = execute(db.session, AppConfig(target_namespace="liveprobe-target", ), k, aid, "test")
     assert result.status == "denied" and not k.patches
     with db.session() as s:
         assert s.get(Action, aid).status == "denied"
@@ -87,16 +87,16 @@ def test_only_approved_action_mints_bound_grant(db_url, monkeypatch):
         act = s.get(Action, aid)
         act.policy_mode = "approval"
         k.action_id, k.incident_id = aid, act.incident_id
-    assert execute(db.session, AppConfig(), k, aid, "test").status == "denied"
+    assert execute(db.session, AppConfig(target_namespace="liveprobe-target", ), k, aid, "test").status == "denied"
     assert k.grants is None and not k.patches
     with db.session() as s:
         db.audit(s, "human", "action_approved", k.incident_id, action_id=aid)
-    result = execute(db.session, AppConfig(), k, aid, "test")
+    result = execute(db.session, AppConfig(target_namespace="liveprobe-target", ), k, aid, "test")
     assert result.status in ("succeeded", "failed") and len(k.patches) == 1
     assert k.grants is not None
     with pytest.raises(InvalidGrant):
         verify(key, {**k.grants, "action_id": aid + 1})
-    assert execute(db.session, AppConfig(), k, aid, "test").status == "denied"
+    assert execute(db.session, AppConfig(target_namespace="liveprobe-target", ), k, aid, "test").status == "denied"
     assert len(k.patches) == 1
 
 

@@ -21,7 +21,7 @@ from typing import Any
 from jsonschema import Draft202012Validator, SchemaError, ValidationError as SchemaValidationError
 
 from ..redact import redact
-from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema
+from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema, validation_schema
 from .secrets import resolve_secret
 
 _AUTH_HINTS = ("not logged in", "/login", "failed to authenticate", "invalid bearer", "oauth token",
@@ -74,7 +74,7 @@ class ClaudeCLIProvider:
         if not token:
             raise LLMError("config", "CLAUDE_CODE_OAUTH_TOKEN is not configured")
         try:
-            validator = Draft202012Validator(strict_schema(schema))
+            validator = Draft202012Validator(validation_schema(schema))
             validator.check_schema(validator.schema)
         except (SchemaError, TypeError, ValueError):
             raise LLMError("config", "invalid output schema") from None

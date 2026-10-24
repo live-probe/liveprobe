@@ -3,12 +3,12 @@ import { request } from './api';
 
 type Placement = { model: string; effort: string };
 type Group = { primary_mode: 'router' | 'fixed'; roles: Record<string, Placement> };
-type Draft = { router: Placement; groups: Record<string, Group> };
+type Draft = { router: Placement; groups: Record<string, Group>; assist?: {code_fixer:Placement} };
 type ModelSettingsData = Draft & { revision: number; source: string; provider: string; editable: boolean;
   defaults: Draft; catalog: { model: string; efforts: string[] }[];
   limits: { model_ladder: string[]; max_cost_usd: Record<string, number> } };
 const LEVELS = [['SIMPLE', '단순 그룹'], ['NORMAL', '보통 그룹'], ['COMPLEX', '복잡 그룹'], ['HIGH_RISK', '고위험 그룹']];
-const ROLES: Record<string, string> = { router: '사건 분류', signal_analyst: '신호 분석', result_verifier: '결과 확인',
+const ROLES: Record<string, string> = { code_fixer:'코드 수정', router: '사건 분류', signal_analyst: '신호 분석', result_verifier: '결과 확인',
   coordinator: '진행 조정', k8s_analyst: '쿠버네티스 분석', log_summarizer: '로그 요약', group_verifier: '독립 결과 확인',
   k8s_log_analyst: '쿠버네티스·로그 분석', cause_reasoner: '원인 추론', challenger: '반론 검토',
   recovery_planner: '복구 계획', evidence_curator: '근거 정리', safety_verifier: '안전 검증' };
@@ -20,7 +20,7 @@ const ROLE_ORDER: Record<string, string[]> = {
   HIGH_RISK: ['evidence_curator', 'safety_verifier'],
 };
 const EFFORTS: Record<string, string> = { low: '낮음', medium: '중간', high: '높음', xhigh: '최고' };
-const cloneDraft = (s: Draft): Draft => structuredClone({ router: s.router, groups: s.groups });
+const cloneDraft = (s: Draft): Draft => structuredClone({ router: s.router, groups: s.groups, assist:s.assist ?? {code_fixer:{model:'gpt-6.1-sol',effort:'high'}} });
 
 export function ModelSettings() {
   const [data, setData] = useState<ModelSettingsData | null>(null);
@@ -37,6 +37,7 @@ export function ModelSettings() {
   useEffect(() => { void load(); }, []);
   const changes: string[] = [];
   if (data && draft) {
+    if (JSON.stringify(draft.assist) !== JSON.stringify(data.assist ?? data.defaults.assist)) changes.push('코드 수정');
     if (JSON.stringify(draft.router) !== JSON.stringify(data.router)) changes.push('공통 사건 분류');
     for (const [key, label] of LEVELS) {
       const a = draft.groups[key]; const b = data.groups[key];
@@ -49,7 +50,7 @@ export function ModelSettings() {
     setDraft(old => {
       if (!old) return old;
       const next = cloneDraft(old);
-      const target = common ? next.router : next.groups[level].roles[role];
+      const target = role === 'code_fixer' ? next.assist!.code_fixer : common ? next.router : next.groups[level].roles[role];
       target[field] = value;
       return next;
     });
@@ -90,6 +91,7 @@ export function ModelSettings() {
       {!data.editable && <p className="notice">현재 공급자는 {data.provider}입니다. 이 화면의 편집은 Codex CLI에서만 지원합니다.</p>}
       <p className="model-boundary">Codex CLI 전용 · API 키 전환 없음 · 고위험 자동 조치 금지</p>
       <div className="card"><header>공통 사건 분류</header><div className="body">{placement('router', draft.router, true)}</div></div>
+      <div className="card"><header>변경 요청 코드 수정</header><div className="body">{placement('code_fixer', draft.assist!.code_fixer, true)}</div></div>
       <div className="model-group-buttons" aria-label="사건 수준별 그룹">{LEVELS.map(([key, label]) => <button className={`btn ${level === key ? 'primary' : ''}`} key={key} aria-pressed={level === key} onClick={() => setLevel(key)}>{label}</button>)}</div>
       <div className="card"><header><h3>{LEVELS.find(([key]) => key === level)?.[1]} 역할 배치</h3></header><div className="body">
         <label className="model-mode">주 모델 선택 방식<select aria-label="주 모델 선택 방식" className="select" value={draft.groups[level].primary_mode} disabled={busy || !data.editable} onChange={e => {

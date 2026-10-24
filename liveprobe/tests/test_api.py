@@ -108,7 +108,7 @@ def test_incident_list_and_detail_shapes(client):
     lst = client.get("/api/incidents").json()
     assert set(lst) == {"items", "total"} and lst["total"] == 1
     item = lst["items"][0]
-    assert set(item) == {"id", "title", "namespace", "workload", "status", "severity_level", "signal_count",
+    assert set(item) == {"system", "environment", "id", "title", "namespace", "workload", "status", "severity_level", "signal_count",
                          "created_at", "updated_at", "closed_at", "total_cost_usd", "agent_run_count"}
     assert item["agent_run_count"] == 1 and item["total_cost_usd"] == 0.01
     assert item["created_at"].endswith("Z")

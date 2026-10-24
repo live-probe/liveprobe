@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 const sourceFiles = ['index.html','vite.config.ts',...readdirSync('src').filter(f => /\.(ts|tsx|css)$/.test(f)).sort().map(f => `src/${f}`)];
 const sourceHash = createHash('sha256').update(sourceFiles.map(f => `${f}\n${readFileSync(f,'utf8')}`).join('\n')).digest('hex');
 export const mock = process.env.LIVEPROBE_MOCK === '1';
+// 각 개선 단계가 이전 배포의 캡처·검사 증거를 덮어쓰지 않도록 분리한다.
+const artifactRoot = process.env.LIVEPROBE_EVIDENCE_ROOT ?? 'e2e/artifacts';
 export async function resetMock(request) { if (mock) await request.post('/api/mock/reset', { headers: { 'X-LiveProbe-Client':'dashboard' } }); }
 export async function tab(page, name) { await page.locator('.incident-room').waitFor(); const nav=page.getByRole('navigation',{name:'관제실 화면 전환'}); if(await nav.isVisible()) await nav.getByRole('button',{name,exact:true}).click(); }
 /** 장애 관제실의 근거 탭 이름은 단계 선택 여부에 따라 바뀐다. */
@@ -11,11 +13,11 @@ export async function evidenceTab(page) { await page.locator('.incident-room').w
 /** 데스크톱 무스크롤 검사: 페이지(.main) 자체가 세로로 스크롤되지 않는다. */
 export async function noPageScroll(page) { const m=await page.locator('.main').evaluate(e=>({sh:e.scrollHeight,ch:e.clientHeight})); expect(m.sh,JSON.stringify(m)).toBeLessThanOrEqual(m.ch+1); }
 export async function capture(page, testInfo, name) {
-  const dir = `e2e/artifacts/${mock ? 'mock' : 'live'}`;
+  const dir = `${artifactRoot}/${mock ? 'mock' : 'live'}`;
   mkdirSync(dir,{recursive:true});
   const path=`${dir}/${name}-${testInfo.project.name}.png`;
   await page.screenshot({path,fullPage:true});
-  appendFileSync('e2e/artifacts/captures.jsonl', JSON.stringify({ path, state:name, project:testInfo.project.name, viewport:page.viewportSize(), url:page.url(), at:new Date().toISOString(), source_sha256:sourceHash })+'\n');
+  appendFileSync(`${artifactRoot}/captures.jsonl`, JSON.stringify({ path, state:name, project:testInfo.project.name, viewport:page.viewportSize(), url:page.url(), at:new Date().toISOString(), source_sha256:sourceHash })+'\n');
 }
 export async function layout(page) {
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -47,7 +49,7 @@ export async function layout(page) {
   });expect(overlaps).toEqual([]);
   const clipped=await page.locator('.btn,.filter,.room-tabs button,.side-tabs button,.alert-button,.cited-by button,.graph-toolbar button').evaluateAll(es=>es.filter(e=>e.getBoundingClientRect().width>0 && (e.scrollWidth>e.clientWidth+2||e.scrollHeight>e.clientHeight+2)).map(e=>({text:e.textContent,w:e.clientWidth,sw:e.scrollWidth,h:e.clientHeight,sh:e.scrollHeight})));
   expect(clipped).toEqual([]);
-  mkdirSync('e2e/artifacts',{recursive:true});
-  appendFileSync('e2e/artifacts/layout.jsonl', JSON.stringify({ url:page.url(), viewport:page.viewportSize(), source_sha256:sourceHash, document:await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth})), panels:sizes, overlaps, clipped })+'\n');
+  mkdirSync(artifactRoot,{recursive:true});
+  appendFileSync(`${artifactRoot}/layout.jsonl`, JSON.stringify({ url:page.url(), viewport:page.viewportSize(), source_sha256:sourceHash, document:await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth})), panels:sizes, overlaps, clipped })+'\n');
 }
 export function errors(page) { const es=[];page.on('pageerror',e=>es.push(e.message));return es; }

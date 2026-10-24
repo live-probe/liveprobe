@@ -31,11 +31,23 @@ class Watchers:
         self.network = NetworkSignalAdapter(flow_store, kube, cfg, emit) if flow_store is not None else None
 
     def start(self) -> None:
+        if len(self.cfg.target_namespaces) > 1:
+            for ns in self.cfg.target_namespaces:
+                child = Watchers(self.kube, self.cfg.model_copy(update={"target_namespaces": [ns]}), self.emit)
+                child._stop, child.status = self._stop, self.status
+                child._start_loops(suffix="/" + ns)
+            if self.network is not None:
+                threading.Thread(target=self._guard, args=("network_poller", self._network_loop), name="network_poller", daemon=True).start()
+        else:
+            self._start_loops()
+
+    def _start_loops(self, suffix: str = "") -> None:
         loops = [("pod_watch", self._pod_loop), ("event_watch", self._event_loop),
                  ("endpoint_poller", self._endpoint_loop)]
         if self.network is not None:
             loops.append(("network_poller", self._network_loop))
         for name, fn in loops:
+            name += suffix
             threading.Thread(target=self._guard, args=(name, fn), name=name, daemon=True).start()
 
     def stop(self) -> None:

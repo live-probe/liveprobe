@@ -26,7 +26,7 @@ export function LiveProvider({ children, onOpenIncident }: { children: ReactNode
       const k = ++key.current;
       setToasts(t => [...t.slice(-3), { ...a, key: k }]);
       window.setTimeout(() => setToasts(t => t.filter(x => x.key !== k)), 12000);
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && a.kind !== 'resolved') {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && a.kind !== 'resolved' && a.kind !== 'closed') {
         try { const n = new Notification(alertText(a), { body: a.title, tag: `incident-${a.id}` }); n.onclick = () => { window.focus(); onOpenIncident(a.id); }; } catch { /* some browsers forbid it */ }
       }
     }

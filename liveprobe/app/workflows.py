@@ -8,6 +8,7 @@ from typing import Any, Callable, TypedDict
 from langgraph.graph import END, StateGraph
 
 from .proposals import ACTION_RULES, precheck, resolve, same
+from .remediation import REMEDIATION_RULES
 
 
 @dataclass
@@ -73,7 +74,7 @@ def _ctx(state: WFState) -> str:
 OUTPUT_RULES = (
     "Output fields: summary; root_cause_candidates (max 3, each with cause, confidence 0..1, evidence_refs "
     "citing evidence ids and runbook ids); counter_evidence; confidence 0..1; next_action; action (when acting); "
-    "recommended_steps (manual steps for an operator).\n" + ACTION_RULES
+    "recommended_steps (manual steps for an operator).\n" + ACTION_RULES + "\n" + REMEDIATION_RULES
 )
 
 
@@ -141,6 +142,7 @@ def _features(state: WFState) -> dict:
 def _handoff(out: dict, extra: list[str] | None = None) -> dict:
     return {
         "summary": (out or {}).get("summary"),
+        "remediation": (out or {}).get("remediation"),
         "root_cause_candidates": ((out or {}).get("root_cause_candidates") or [])[:3],
         "recommended_steps": (out or {}).get("recommended_steps") or [],
         "notes": extra or [],

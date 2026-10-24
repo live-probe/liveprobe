@@ -26,7 +26,7 @@ def setup_adapter(emit=None, *, merge=10, window=300):
         pod["metadata"]["namespace"] = NS
     sent = []
     adapter = network_signals.NetworkSignalAdapter(
-        store, kube, AppConfig(merge_window_seconds=merge), emit or sent.append,
+        store, kube, AppConfig(target_namespace="liveprobe-target", merge_window_seconds=merge), emit or sent.append,
         clock=lambda: now[0],
     )
     return adapter, store, kube, sent, now
@@ -221,7 +221,7 @@ def test_ambiguous_service_selector_does_not_guess_a_workload():
 def test_watcher_optional_flow_adapter_polls_and_has_separate_status():
     from app.watcher import Watchers
     _, store, kube, sent, _ = setup_adapter()
-    watchers = Watchers(kube, AppConfig(), sent.append, flow_store=store)
+    watchers = Watchers(kube, AppConfig(target_namespace="liveprobe-target", ), sent.append, flow_store=store)
     # Use the same deterministic event-time domain as the test FlowStore.
     assert watchers.network is not None
     watchers.network.clock = store.clock
@@ -244,9 +244,9 @@ def test_watcher_starts_network_thread_only_when_enabled(monkeypatch):
         def start(self):
             names.append(self.name)
     monkeypatch.setattr(watcher.threading, "Thread", Thread)
-    watcher.Watchers(kube, AppConfig(), lambda _: None).start()
+    watcher.Watchers(kube, AppConfig(target_namespace="liveprobe-target", ), lambda _: None).start()
     assert "network_poller" not in names
-    watcher.Watchers(kube, AppConfig(), lambda _: None, flow_store=store).start()
+    watcher.Watchers(kube, AppConfig(target_namespace="liveprobe-target", ), lambda _: None, flow_store=store).start()
     assert names.count("network_poller") == 1
 
 
@@ -345,7 +345,7 @@ def test_flow_signal_ingestion_routes_high_risk_and_hands_off_without_actions(db
     from app.workflows import AgentCall
 
     adapter, store, kube, _, _ = setup_adapter()
-    engine = Engine(AppConfig(settle_seconds=0), Settings(), kube, None, None)
+    engine = Engine(AppConfig(target_namespace="liveprobe-target", settle_seconds=0), Settings(), kube, None, None)
     monkeypatch.setattr(engine_module, "evaluation_lock_active", lambda: False)
     bundle = family1()
     bundle.items = [EvidenceItem("deployment", "inventory", bundle.deployment),
@@ -397,7 +397,7 @@ def test_network_poll_budget_is_bounded_degraded_retryable_and_has_no_late_effec
 
     monkeypatch.setattr(network_signals, "POLL_TIMEOUT_S", 0.04, raising=False)
     _, store, kube, sent, _ = setup_adapter()
-    watchers = Watchers(kube, AppConfig(), sent.append, flow_store=store)
+    watchers = Watchers(kube, AppConfig(target_namespace="liveprobe-target", ), sent.append, flow_store=store)
     adapter = watchers.network
     assert adapter is not None
     adapter.clock = store.clock
@@ -486,7 +486,7 @@ def test_slow_delivery_is_bounded_pending_and_never_duplicated(monkeypatch, late
                 raise RuntimeError("delivery failed")
         sent.append(sig)
 
-    watchers = Watchers(kube, AppConfig(), emit, flow_store=store)
+    watchers = Watchers(kube, AppConfig(target_namespace="liveprobe-target", ), emit, flow_store=store)
     adapter = watchers.network
     assert adapter is not None
     adapter.clock = store.clock

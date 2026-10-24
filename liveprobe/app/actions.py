@@ -107,7 +107,7 @@ def _meta(obj: dict) -> dict:
 
 def _labels_ok(labels: dict | None, required: dict[str, str]) -> bool:
     labels = labels or {}
-    return bool(required) and all(labels.get(k) == v for k, v in required.items())
+    return bool(labels.get("app.kubernetes.io/part-of")) and all(labels.get(k) == v for k, v in required.items())
 
 
 def _check_params(action_type: str, params: dict) -> dict:
@@ -167,16 +167,18 @@ class Validated:
 
 def _deployment(cfg: AppConfig, kube: Any, ns: str, name: str) -> dict:
     pol = cfg.safe_actions
-    if name not in pol.deployments:
-        raise Denied(f"Deployment {name!r} is not an allowlisted safe-action target {pol.deployments}")
     dep = kube.get_deployment(ns, name)
     if not dep:
         raise Denied(f"Deployment {ns}/{name} does not exist")
     if _meta(dep).get("name") != name or _meta(dep).get("namespace", ns) != ns:
         raise Denied("Deployment identity mismatch")
     tpl_labels = (((dep.get("spec") or {}).get("template") or {}).get("metadata") or {}).get("labels")
-    if not _labels_ok(_meta(dep).get("labels"), pol.ownership_labels) or not _labels_ok(tpl_labels, pol.ownership_labels):
-        raise Denied(f"Deployment {name!r} lacks required ownership labels {pol.ownership_labels}")
+    labels = _meta(dep).get("labels") or {}
+    if not _labels_ok(labels, pol.managed_label):
+        raise Denied("Deployment lacks required managed ownership labels")
+    system = labels.get("app.kubernetes.io/part-of")
+    if not system or not system.strip() or (tpl_labels or {}).get("app.kubernetes.io/part-of") != system:
+        raise Denied("Deployment lacks matching non-empty ownership system labels")
     if not _meta(dep).get("resourceVersion") or not _meta(dep).get("uid"):
         raise Denied("Deployment is missing uid/resourceVersion; cannot guarantee optimistic concurrency")
     return dep
@@ -198,14 +200,14 @@ def _dep_snapshot(dep: dict) -> dict:
 
 
 def validate(cfg: AppConfig, kube: Any, action_type: str, ns: str, kind: str, name: str, params: dict,
-             api_group: str | None = None) -> Validated:
+             api_group: str | None = None, *, system: str | None = None) -> Validated:
     """All static and live checks. Raises Denied; never mutates."""
     if action_type not in TYPED:
         raise Denied(f"action type {action_type!r} is not a known typed safe action")
     if action_type not in cfg.allowlist:
         raise Denied(f"action type {action_type!r} is not in the allowlist {cfg.allowlist}")
-    if ns != cfg.target_namespace:
-        raise Denied(f"target namespace {ns!r} is not the configured target namespace {cfg.target_namespace!r}")
+    if ns not in cfg.target_namespaces:
+        raise Denied(f"target namespace {ns!r} is not in configured targets {cfg.target_namespaces!r}")
     spec = TYPED[action_type]
     if kind != spec.kind:
         raise Denied(f"{action_type} only supports kind {spec.kind}, got {kind!r}")
@@ -217,7 +219,12 @@ def validate(cfg: AppConfig, kube: Any, action_type: str, ns: str, kind: str, na
     pol = cfg.safe_actions
     handler = {"pod_delete": _v_pod_delete, "rollout_restart": _v_restart, "scale_replicas": _v_scale,
                "set_memory_limit": _v_limit, "configmap_restore": _v_configmap}[action_type]
-    return handler(cfg, pol, kube, ns, name, params)
+    v = handler(cfg, pol, kube, ns, name, params)
+    if system is not None:
+        dep = kube.get_deployment(ns, v.workload) or {}
+        if ((_meta(dep).get("labels") or {}).get("app.kubernetes.io/part-of")) != system:
+            raise Denied("Deployment system differs from incident system")
+    return v
 
 
 def _v_pod_delete(cfg, pol, kube, ns, name, params) -> Validated:
@@ -519,9 +526,11 @@ def propose_typed(s: Session, cfg: AppConfig, kube: Any, incident: Incident, lev
     audit(s, actor, "action_proposed", incident.id, action_id=act.id, type=action_type, target=target,
           level=level, policy=policy, args=params)
     try:
+        if not incident.system:
+            raise Denied("incident system is unobserved; ownership cannot be verified")
         if not known:
             raise Denied(f"action type {action_type!r} is not a known typed safe action")
-        v = validate(cfg, kube, action_type, incident.namespace, kind, name, params, api_group)
+        v = validate(cfg, kube, action_type, incident.namespace, kind, name, params, api_group, system=incident.system)
         if v.workload != incident.workload:
             raise Denied(f"action workload {v.workload!r} differs from incident workload {incident.workload!r}")
     except Denied as e:
@@ -549,6 +558,8 @@ def _authorized(s: Session, act: Action, inc: Incident | None) -> str | None:
         return "not a typed safe action"
     if inc is None or inc.status not in INCIDENT_OPEN_STATES:
         return "incident is not open"
+    if not inc.system:
+        return "incident system is unobserved; ownership cannot be verified"
     from .safety import has_network_risk
     if has_network_risk(inc):
         return 'NetworkDrop: operator handoff; automatic actions are not allowed'
@@ -604,7 +615,7 @@ def execute_typed(session_factory, cfg: AppConfig, kube: Any, action_id: int, ac
             try:
                 ns, kind, name = act.target.split("/", 2)
                 p = act.params or {}
-                v = validate(cfg, kube, act.type, ns, kind, name, p.get("args") or {}, p.get("api_group"))
+                v = validate(cfg, kube, act.type, ns, kind, name, p.get("args") or {}, p.get("api_group"), system=inc.system)
                 if v.workload != inc.workload or v.lock_key != act.lock_key:
                     raise Denied("action workload/lock no longer matches the incident")
                 if v.fingerprint != p.get("proposal_fingerprint"):
@@ -688,9 +699,10 @@ class SafeActionKube:
 
     def __init__(self, observe: Any, core: Any, apps: Any, api_exception: type[Exception], *,
                  namespace: str = "liveprobe-target", deployments: tuple[str, ...] = ("inventory", "order"),
-                 configmaps: tuple[str, ...] = ("inventory-config", "order-config")):
+                 configmaps: tuple[str, ...] = ("inventory-config", "order-config"), cfg: AppConfig | None = None):
         self._observe, self._core, self._apps, self._exc = observe, core, apps, api_exception
         self.ns, self.deployments, self.configmaps = namespace, deployments, configmaps
+        self.cfg = cfg
 
     def __getattr__(self, item):  # read-only helpers are delegated to the observe client
         if item in ("get_pod", "get_deployment", "get_replicaset", "list_pods", "list_replicasets"):
@@ -698,6 +710,10 @@ class SafeActionKube:
         raise AttributeError(item)
 
     def _guard(self, ns: str, name: str, allowed: tuple[str, ...] | None):
+        if self.cfg is not None:
+            if ns not in self.cfg.target_namespaces:
+                raise Denied("executor target namespace not configured")
+            return
         if ns != self.ns or (allowed is not None and name not in allowed):
             raise Denied("executor target not allowlisted")
 
@@ -727,6 +743,8 @@ class SafeActionKube:
 
     def patch_deployment_json(self, ns: str, name: str, ops: list[dict]) -> dict:
         self._guard(ns, name, self.deployments)
+        if self.cfg is not None:
+            _deployment(self.cfg, self._observe, ns, name)
         return self._call(self._apps.patch_namespaced_deployment, name, ns, ops)
 
     def patch_configmap_json(self, ns: str, name: str, ops: list[dict]) -> dict:

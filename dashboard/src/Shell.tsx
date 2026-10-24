@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { age } from './api';
 import { alertText } from './feed';
+import { placeKo } from './labels';
 import { LiveProvider, useLive } from './live';
 import { LevelBadge, StatusBadge } from './ui';
 const RANK: Record<string, number> = { HIGH_RISK: 0, COMPLEX: 1, NORMAL: 2, SIMPLE: 3 };
@@ -37,7 +38,7 @@ function AlertMenu() {
       {openState !== 'ready' && <p className="notice" role="status">{openState === 'loading' ? '진행 중 장애 조회 중입니다.' : '알림 조회 실패 · 표시된 목록은 마지막 조회 기준입니다.'}</p>}
       {items.length === 0 ? (openState === 'ready' && <p className="empty">진행 중인 장애가 없습니다.</p>) : <ul className="alert-list">{items.map(i => <li key={i.id}><Link className="alert-item" to={`/incidents/${i.id}`} aria-label={`${i.workload} 장애 ${i.id} 관제실 열기`}>
         <span className="alert-item-top"><strong>{i.workload}</strong><LevelBadge value={i.severity_level} /></span>
-        <span className="alert-item-meta"><span className="mono">{i.namespace} · #{i.id}</span><StatusBadge value={i.status} /><span>{age(i.created_at)} 경과</span></span>
+        <span className="alert-item-meta"><span className="mono">{placeKo(i.environment, i.system, i.workload, i.namespace)} · #{i.id}</span><StatusBadge value={i.status} /><span>{age(i.created_at)} 경과</span></span>
       </Link></li>)}</ul>}
       <Link className="alert-all" to="/incidents">전체 장애 목록 보기 →</Link>
     </div>}

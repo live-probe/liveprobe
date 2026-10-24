@@ -1,0 +1,1382 @@
+{
+  "generated_at": "2026-10-19T00:16:00+09:00",
+  "cluster": {
+    "nodes": [
+      {
+        "name": "lima-rancher-desktop",
+        "ready": true,
+        "cpu_cores": 4,
+        "cpu_used_cores": null,
+        "mem_bytes": 12525748224,
+        "mem_used_bytes": null,
+        "pods": 7
+      }
+    ],
+    "namespaces": [
+      {
+        "name": "liveprobe-system",
+        "pods_running": 4,
+        "pods_pending": 0,
+        "pods_failed": 0,
+        "restarts_1h": null,
+        "cpu_cores": null,
+        "mem_bytes": null,
+        "workloads": 4,
+        "workloads_unhealthy": null
+      },
+      {
+        "name": "dev",
+        "pods_running": 7,
+        "pods_pending": 0,
+        "pods_failed": 0,
+        "restarts_1h": null,
+        "cpu_cores": null,
+        "mem_bytes": null,
+        "workloads": 7,
+        "workloads_unhealthy": 0
+      },
+      {
+        "name": "stg",
+        "pods_running": 7,
+        "pods_pending": 0,
+        "pods_failed": 0,
+        "restarts_1h": null,
+        "cpu_cores": null,
+        "mem_bytes": null,
+        "workloads": 7,
+        "workloads_unhealthy": 0
+      },
+      {
+        "name": "prd",
+        "pods_running": 7,
+        "pods_pending": 0,
+        "pods_failed": 0,
+        "restarts_1h": null,
+        "cpu_cores": null,
+        "mem_bytes": null,
+        "workloads": 7,
+        "workloads_unhealthy": 0
+      }
+    ],
+    "environments": [
+      {
+        "name": "dev",
+        "order": 1,
+        "workloads": 7,
+        "pods_ready": 7,
+        "pods_total": 7,
+        "open_incidents": 0
+      },
+      {
+        "name": "stg",
+        "order": 2,
+        "workloads": 7,
+        "pods_ready": 7,
+        "pods_total": 7,
+        "open_incidents": 0
+      },
+      {
+        "name": "prd",
+        "order": 3,
+        "workloads": 7,
+        "pods_ready": 7,
+        "pods_total": 7,
+        "open_incidents": 1
+      }
+    ]
+  },
+  "workloads": [
+    {
+      "id": "liveprobe-system/Deployment/dashboard",
+      "namespace": "liveprobe-system",
+      "name": "dashboard",
+      "kind": "Deployment",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null,
+      "system": null,
+      "environment": null
+    },
+    {
+      "id": "liveprobe-system/Deployment/liveprobe-api",
+      "namespace": "liveprobe-system",
+      "name": "liveprobe-api",
+      "kind": "Deployment",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null,
+      "system": null,
+      "environment": null
+    },
+    {
+      "id": "liveprobe-system/Deployment/rollback-controller",
+      "namespace": "liveprobe-system",
+      "name": "rollback-controller",
+      "kind": "Deployment",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null,
+      "system": null,
+      "environment": null
+    },
+    {
+      "id": "liveprobe-system/StatefulSet/postgres",
+      "namespace": "liveprobe-system",
+      "name": "postgres",
+      "kind": "StatefulSet",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null,
+      "system": null,
+      "environment": null
+    },
+    {
+      "id": "dev/Deployment/order",
+      "namespace": "dev",
+      "name": "order",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/inventory",
+      "namespace": "dev",
+      "name": "inventory",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/payment",
+      "namespace": "dev",
+      "name": "payment",
+      "kind": "Deployment",
+      "system": "payment",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/member",
+      "namespace": "dev",
+      "name": "member",
+      "kind": "Deployment",
+      "system": "member",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/catalog",
+      "namespace": "dev",
+      "name": "catalog",
+      "kind": "Deployment",
+      "system": "catalog",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/delivery",
+      "namespace": "dev",
+      "name": "delivery",
+      "kind": "Deployment",
+      "system": "delivery",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "dev/Deployment/notification",
+      "namespace": "dev",
+      "name": "notification",
+      "kind": "Deployment",
+      "system": "notification",
+      "environment": "dev",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/order",
+      "namespace": "stg",
+      "name": "order",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/inventory",
+      "namespace": "stg",
+      "name": "inventory",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/payment",
+      "namespace": "stg",
+      "name": "payment",
+      "kind": "Deployment",
+      "system": "payment",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/member",
+      "namespace": "stg",
+      "name": "member",
+      "kind": "Deployment",
+      "system": "member",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/catalog",
+      "namespace": "stg",
+      "name": "catalog",
+      "kind": "Deployment",
+      "system": "catalog",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/delivery",
+      "namespace": "stg",
+      "name": "delivery",
+      "kind": "Deployment",
+      "system": "delivery",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "stg/Deployment/notification",
+      "namespace": "stg",
+      "name": "notification",
+      "kind": "Deployment",
+      "system": "notification",
+      "environment": "stg",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": null,
+      "err_rate": null,
+      "p95_ms": null,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/order",
+      "namespace": "prd",
+      "name": "order",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/inventory",
+      "namespace": "prd",
+      "name": "inventory",
+      "kind": "Deployment",
+      "system": "order",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0.125,
+      "p95_ms": 500,
+      "incident": {
+        "id": 1976,
+        "level": "NORMAL",
+        "status": "analyzing",
+        "stage": {
+          "key": "analyzing",
+          "label": "쿠버네티스 분석 중"
+        }
+      }
+    },
+    {
+      "id": "prd/Deployment/payment",
+      "namespace": "prd",
+      "name": "payment",
+      "kind": "Deployment",
+      "system": "payment",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/member",
+      "namespace": "prd",
+      "name": "member",
+      "kind": "Deployment",
+      "system": "member",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/catalog",
+      "namespace": "prd",
+      "name": "catalog",
+      "kind": "Deployment",
+      "system": "catalog",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/delivery",
+      "namespace": "prd",
+      "name": "delivery",
+      "kind": "Deployment",
+      "system": "delivery",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    },
+    {
+      "id": "prd/Deployment/notification",
+      "namespace": "prd",
+      "name": "notification",
+      "kind": "Deployment",
+      "system": "notification",
+      "environment": "prd",
+      "ready": 1,
+      "desired": 1,
+      "restarts_1h": null,
+      "cpu": null,
+      "mem": null,
+      "req_rate": 2.0,
+      "err_rate": 0,
+      "p95_ms": 12,
+      "incident": null
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-10-11T12:02:02+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/inventory-5fb6dd8476-fgrhh",
+      "reason": "BackOff",
+      "type": "Warning",
+      "message": "Back-off restarting failed container inventory in pod inventory-5fb6dd8476-fgrhh_liveprobe-target(2db5ea4d-f42e-4b52-bb75-19c6bfa64165)",
+      "count": 4
+    },
+    {
+      "at": "2026-10-11T11:59:56+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/inventory-5fb6dd8476-fgrhh",
+      "reason": "Unhealthy",
+      "type": "Warning",
+      "message": "Startup probe failed: HTTP probe failed with statuscode: 500",
+      "count": 2
+    },
+    {
+      "at": "2026-10-11T12:41:31+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/order-c955d9c5c-zs9xg",
+      "reason": "Failed",
+      "type": "Warning",
+      "message": "Error: ImagePullBackOff",
+      "count": 1
+    },
+    {
+      "at": "2026-10-11T12:41:29+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/order-c955d9c5c-zs9xg",
+      "reason": "Failed",
+      "type": "Warning",
+      "message": "Failed to pull image \"liveprobe/order:does-not-exist-19\": Error response from daemon: pull access denied for liveprobe/order, repository does not exist or may require 'docker login'",
+      "count": 1
+    },
+    {
+      "at": "2026-10-11T12:41:29+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/order-c955d9c5c-zs9xg",
+      "reason": "Failed",
+      "type": "Warning",
+      "message": "Error: ErrImagePull",
+      "count": 1
+    },
+    {
+      "at": "2026-10-11T12:40:44+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/order-c955d9c5c-2qb9w",
+      "reason": "Failed",
+      "type": "Warning",
+      "message": "Failed to pull image \"liveprobe/order:does-not-exist-19\": Error response from daemon: pull access denied for liveprobe/order, repository does not exist or may require 'docker login'",
+      "count": 3
+    },
+    {
+      "at": "2026-10-11T12:40:44+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/order-c955d9c5c-2qb9w",
+      "reason": "Failed",
+      "type": "Warning",
+      "message": "Error: ErrImagePull",
+      "count": 3
+    },
+    {
+      "at": "2026-10-18T13:44:29+00:00",
+      "namespace": "liveprobe-target",
+      "object": "Pod/p14-net-sink-7cd5d6c5f-57hn8",
+      "reason": "Unhealthy",
+      "type": "Warning",
+      "message": "Readiness probe failed: dial tcp 10.42.0.138:18080: connect: connection refused",
+      "count": 1
+    }
+  ],
+  "incidents": {
+    "open": [
+      {
+        "id": 1976,
+        "title": "재고 서비스 연결 풀 고갈",
+        "namespace": "prd",
+        "workload": "inventory",
+        "status": "analyzing",
+        "severity_level": "NORMAL",
+        "created_at": "2026-10-19T00:00:00+09:00",
+        "stage": {
+          "key": "analyzing",
+          "label": "쿠버네티스 분석 중"
+        },
+        "system": "order",
+        "environment": "prd"
+      }
+    ],
+    "today": {
+      "total": 5,
+      "resolved": 3,
+      "handed_off": 1,
+      "failed": 0
+    }
+  },
+  "topology": {
+    "generated_at": 1792336572.9180646,
+    "freshness": {
+      "state": "connected",
+      "last_flow_age_s": 0.3,
+      "stale": false,
+      "stale_after_s": 60.0,
+      "window_s": 300.0,
+      "received_total": 286440,
+      "nodes_connected": 1,
+      "error": null
+    },
+    "nodes": [
+      {
+        "id": "liveprobe-system/Deployment/dashboard",
+        "kind": "Deployment",
+        "name": "dashboard",
+        "namespace": "liveprobe-system",
+        "pods": 1,
+        "ready": 1,
+        "status": "ready",
+        "node": "lima-rancher-desktop",
+        "services": [
+          {
+            "name": "dashboard",
+            "ports": [
+              80
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Deployment/liveprobe-api",
+        "kind": "Deployment",
+        "name": "liveprobe-api",
+        "namespace": "liveprobe-system",
+        "pods": 1,
+        "ready": 1,
+        "status": "ready",
+        "node": "lima-rancher-desktop",
+        "services": [
+          {
+            "name": "liveprobe-api",
+            "ports": [
+              8000
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Deployment/rollback-controller",
+        "kind": "Deployment",
+        "name": "rollback-controller",
+        "namespace": "liveprobe-system",
+        "pods": 1,
+        "ready": 1,
+        "status": "ready",
+        "node": "lima-rancher-desktop",
+        "services": [
+          {
+            "name": "rollback-controller",
+            "ports": [
+              443
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Ingress/liveprobe-api",
+        "kind": "Ingress",
+        "name": "liveprobe-api",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "hosts": [
+          "liveprobe.localhost"
+        ],
+        "routes": [
+          {
+            "host": "liveprobe.localhost",
+            "path": "/api",
+            "service": "liveprobe-api",
+            "port": 8000,
+            "workload": "liveprobe-system/Deployment/liveprobe-api",
+            "backend_ready": true,
+            "backend_found": true
+          }
+        ],
+        "ingress_class": "traefik",
+        "role": "entry",
+        "broken_routes": [],
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Ingress/liveprobe-dashboard",
+        "kind": "Ingress",
+        "name": "liveprobe-dashboard",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "hosts": [
+          "liveprobe.localhost"
+        ],
+        "routes": [
+          {
+            "host": "liveprobe.localhost",
+            "path": "/",
+            "service": "dashboard",
+            "port": 80,
+            "workload": "liveprobe-system/Deployment/dashboard",
+            "backend_ready": true,
+            "backend_found": true
+          }
+        ],
+        "ingress_class": "traefik",
+        "role": "entry",
+        "broken_routes": [],
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Service/dashboard",
+        "kind": "Service",
+        "name": "dashboard",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "cluster_ip": "10.43.183.247",
+        "ports": [
+          80
+        ],
+        "endpoints_ready": 1,
+        "folded_into": "liveprobe-system/Deployment/dashboard",
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Service/liveprobe-api",
+        "kind": "Service",
+        "name": "liveprobe-api",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "cluster_ip": "10.43.188.156",
+        "ports": [
+          8000
+        ],
+        "endpoints_ready": 1,
+        "folded_into": "liveprobe-system/Deployment/liveprobe-api",
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Service/postgres",
+        "kind": "Service",
+        "name": "postgres",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "cluster_ip": "None",
+        "ports": [
+          5432
+        ],
+        "endpoints_ready": 1,
+        "folded_into": "liveprobe-system/StatefulSet/postgres",
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/Service/rollback-controller",
+        "kind": "Service",
+        "name": "rollback-controller",
+        "namespace": "liveprobe-system",
+        "status": "ready",
+        "cluster_ip": "10.43.32.16",
+        "ports": [
+          443
+        ],
+        "endpoints_ready": 1,
+        "folded_into": "liveprobe-system/Deployment/rollback-controller",
+        "role": "service",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "liveprobe-system/StatefulSet/postgres",
+        "kind": "StatefulSet",
+        "name": "postgres",
+        "namespace": "liveprobe-system",
+        "pods": 1,
+        "ready": 1,
+        "status": "ready",
+        "node": "lima-rancher-desktop",
+        "services": [
+          {
+            "name": "postgres",
+            "ports": [
+              5432
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "role": "data",
+        "data_store": "pgvector",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "node/lima-rancher-desktop",
+        "kind": "Node",
+        "name": "lima-rancher-desktop",
+        "namespace": null,
+        "status": "ready",
+        "role": "node",
+        "system": null,
+        "environment": null
+      },
+      {
+        "id": "dev/Deployment/order",
+        "namespace": "dev",
+        "name": "order",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "order",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/inventory",
+        "namespace": "dev",
+        "name": "inventory",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "inventory",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/payment",
+        "namespace": "dev",
+        "name": "payment",
+        "kind": "Deployment",
+        "system": "payment",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "payment",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/member",
+        "namespace": "dev",
+        "name": "member",
+        "kind": "Deployment",
+        "system": "member",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "member",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/catalog",
+        "namespace": "dev",
+        "name": "catalog",
+        "kind": "Deployment",
+        "system": "catalog",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "catalog",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/delivery",
+        "namespace": "dev",
+        "name": "delivery",
+        "kind": "Deployment",
+        "system": "delivery",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "delivery",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "dev/Deployment/notification",
+        "namespace": "dev",
+        "name": "notification",
+        "kind": "Deployment",
+        "system": "notification",
+        "environment": "dev",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "notification",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/order",
+        "namespace": "stg",
+        "name": "order",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "order",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/inventory",
+        "namespace": "stg",
+        "name": "inventory",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "inventory",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/payment",
+        "namespace": "stg",
+        "name": "payment",
+        "kind": "Deployment",
+        "system": "payment",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "payment",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/member",
+        "namespace": "stg",
+        "name": "member",
+        "kind": "Deployment",
+        "system": "member",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "member",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/catalog",
+        "namespace": "stg",
+        "name": "catalog",
+        "kind": "Deployment",
+        "system": "catalog",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "catalog",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/delivery",
+        "namespace": "stg",
+        "name": "delivery",
+        "kind": "Deployment",
+        "system": "delivery",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "delivery",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "stg/Deployment/notification",
+        "namespace": "stg",
+        "name": "notification",
+        "kind": "Deployment",
+        "system": "notification",
+        "environment": "stg",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "notification",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/order",
+        "namespace": "prd",
+        "name": "order",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "order",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/inventory",
+        "namespace": "prd",
+        "name": "inventory",
+        "kind": "Deployment",
+        "system": "order",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "inventory",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": [
+          {
+            "incident_id": 1976,
+            "level": "NORMAL",
+            "status": "analyzing",
+            "title": "재고 서비스 연결 풀 고갈"
+          }
+        ]
+      },
+      {
+        "id": "prd/Deployment/payment",
+        "namespace": "prd",
+        "name": "payment",
+        "kind": "Deployment",
+        "system": "payment",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "payment",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/member",
+        "namespace": "prd",
+        "name": "member",
+        "kind": "Deployment",
+        "system": "member",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "member",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/catalog",
+        "namespace": "prd",
+        "name": "catalog",
+        "kind": "Deployment",
+        "system": "catalog",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "catalog",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/delivery",
+        "namespace": "prd",
+        "name": "delivery",
+        "kind": "Deployment",
+        "system": "delivery",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "delivery",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      },
+      {
+        "id": "prd/Deployment/notification",
+        "namespace": "prd",
+        "name": "notification",
+        "kind": "Deployment",
+        "system": "notification",
+        "environment": "prd",
+        "status": "ready",
+        "role": "service",
+        "pods": 1,
+        "ready": 1,
+        "services": [
+          {
+            "name": "notification",
+            "ports": [
+              8080
+            ],
+            "endpoints_ready": 1
+          }
+        ],
+        "warnings": []
+      }
+    ],
+    "structure_edges": [],
+    "observed_edges": [
+      {
+        "from": "dev/Deployment/order",
+        "to": "dev/Deployment/inventory",
+        "flows": 12,
+        "ok": 12,
+        "dropped": 0,
+        "errors": 0,
+        "state": "ok",
+        "last_seen": 1792336572.9180646,
+        "ports": {
+          "TCP/8080": 120
+        },
+        "drop_reasons": {},
+        "via_service": {},
+        "req_rate": null,
+        "err_rate": null
+      },
+      {
+        "from": "stg/Deployment/order",
+        "to": "stg/Deployment/inventory",
+        "flows": 12,
+        "ok": 12,
+        "dropped": 0,
+        "errors": 0,
+        "state": "ok",
+        "last_seen": 1792336572.9180646,
+        "ports": {
+          "TCP/8080": 120
+        },
+        "drop_reasons": {},
+        "via_service": {},
+        "req_rate": null,
+        "err_rate": null
+      },
+      {
+        "from": "prd/Deployment/order",
+        "to": "prd/Deployment/inventory",
+        "flows": 120,
+        "ok": 105,
+        "dropped": 0,
+        "errors": 15,
+        "state": "degraded",
+        "last_seen": 1792336572.9180646,
+        "ports": {
+          "TCP/8080": 120
+        },
+        "drop_reasons": {},
+        "via_service": {},
+        "req_rate": 2,
+        "err_rate": 0.125
+      }
+    ],
+    "network_alerts": []
+  },
+  "sources": {
+    "kubernetes": "ok",
+    "prometheus": "ok",
+    "hubble": "connected",
+    "envoy": "표본에 Envoy 지표 없음"
+  }
+}

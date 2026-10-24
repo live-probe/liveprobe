@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, age, clock, money, request, type Command, type FlowNode, type IncidentDetail, type Narrative } from './api';
 import type { RunEvent } from './feed';
-import { currentIncident, evidenceGroups, flowStatusKo, flowTitle, FLOW_TYPE_KO, isFinished, pendingActions, matchesRef, narrativePollMs, normalizeNarrative, RAW_FILTERS, type RawFilter, type RawGroup } from './narrative';
+import { acceptsInstructions, closable, currentIncident, evidenceGroups, flowStatusKo, flowTitle, FLOW_TYPE_KO, isFinished, pendingActions, matchesRef, narrativePollMs, normalizeNarrative, RAW_FILTERS, type RawFilter, type RawGroup } from './narrative';
 import { commandPollMs } from './commands';
 import { numberKo } from './overviewModel';
-import { ACTION_KO, INTENT_KO, KIND_KO, SEVERITY_KO, STAGE_FROM_STATUS, effortKo, roleKo, sourceKo } from './labels';
+import { ACTION_KO, INTENT_KO, KIND_KO, SEVERITY_KO, STAGE_FROM_STATUS, effortKo, placeKo, roleKo, sourceKo } from './labels';
 import { usePolling } from './usePolling';
 import { CommandCard } from './CommandCard';
-import { ActionApprovalCard, HandoffCard } from './ActionApproval';
+import { ChangeRequestCard } from './ChangeRequestCard';
+import { changePollMs, type ChangeRequest } from './changes';
+import { ActionApprovalCard, CloseCard, ClosedCard, HandoffCard } from './ActionApproval';
 import { FlowGraph } from './FlowGraph';
 import { ErrorBox, LevelBadge, Spinner, StatusBadge } from './ui';
 
@@ -56,6 +58,7 @@ export function IncidentRoom() { const { id } = useParams(); return <Room key={i
 function Room({ id }: { id: string }) {
   const narrative = usePolling<Narrative>(`/incidents/${id}/narrative`, d => narrativePollMs(d?.incident.status ?? 'open'));
   const commands = usePolling<{ items: Command[] }>(`/incidents/${id}/commands`, d => commandPollMs(d?.items ?? []));
+  const changes = usePolling<{items:ChangeRequest[]}>(`/changes?incident_id=${id}`, d => changePollMs(d?.items ?? []));
   // Engine actions and handoff ownership live on the incident detail; poll faster only while an approval is pending.
   const detail = usePolling<IncidentDetail>(`/incidents/${id}`, d => pendingActions(d?.actions).length ? 2000 : 10000);
   const data = useMemo(() => narrative.data ? normalizeNarrative(narrative.data) : null, [narrative.data]);
@@ -89,7 +92,7 @@ function Room({ id }: { id: string }) {
   const choose = useCallback((nid: string | null) => { setSelected(old => nid && old === nid ? null : nid); setFocused(null); if (nid) setTab('evidence'); }, []);
   const showRef = useCallback((ref: string) => { setFocused(null); setTab('evidence'); requestAnimationFrame(() => setFocused(ref)); }, []);
   async function send(e: FormEvent) {
-    e.preventDefault(); const body = text.trim(); if (!body || busy || !data || !incident) return;
+    e.preventDefault(); const body = text.trim(); if (!body || busy || !data || !incident || !acceptsInstructions(incident.status)) return;
     setBusy(true); setError(''); setSent(''); scrollNext.current = true;
     try {
       if (isFinished(incident.status)) await request(`/incidents/${id}/commands`, { method: 'POST', body: JSON.stringify({ instruction: body }) });
@@ -113,10 +116,14 @@ function Room({ id }: { id: string }) {
   const rawCount = groups.reduce((a, g) => a + g.items.length, 0);
   const approvals = done ? [] : pendingActions(detail.data?.actions);
   const pending = approvals.length > 0 || (commands.data?.items ?? []).some(c => c.status === 'awaiting_confirmation' || c.status === 'awaiting_secret');
+  // 종료는 진행 중인 조치·지시가 없을 때만 연다. 최종 판단은 서버가 다시 한다.
+  const liveCommand = (commands.data?.items ?? []).some(c => ['planning', 'awaiting_confirmation', 'awaiting_secret', 'executing', 'rolling_back'].includes(String(c.status)));
+  const closeBlocked = pendingActions(detail.data?.actions).length ? '승인 대기 중인 조치가 있습니다. 먼저 승인 또는 거절하세요.' : liveCommand ? '진행 중인 운영자 지시가 있습니다. 지시를 마치거나 취소한 뒤 종료하세요.' : '';
+  const open = acceptsInstructions(i.status);
   return <div className={`incident-room tab-${tab}`}>
-    <section className="headline" aria-label="장애 상황 요약"><div className="headline-top"><Link to="/incidents">← 장애 관제</Link><span className="mono">#{i.id}</span><LevelBadge value={i.severity_level} /><StatusBadge value={i.status} /><h1>장애 관제실</h1><span className="headline-facts"><span>{age(i.created_at, i.closed_at)} 경과</span><span>추정 비용 <b>{money(i.total_cost_usd)}</b> <small>(해석 포함)</small></span></span></div>
+    <section className="headline" aria-label="장애 상황 요약"><div className="headline-top"><Link to="/incidents">← 장애 관제</Link><span className="mono">#{i.id}</span><LevelBadge value={i.severity_level} /><StatusBadge value={i.status} /><h1>장애 관제실</h1><span className="headline-place">{placeKo(i.environment, i.system, i.workload, i.namespace)}</span><span className="headline-facts"><span>{age(i.created_at, i.closed_at)} 경과</span><span>추정 비용 <b>{money(i.total_cost_usd)}</b> <small>(해석 포함)</small></span></span></div>
       <h2>{data.headline.what || '장애 상황을 확인 중입니다.'}</h2><p className="headline-impact">{data.headline.impact || '영향 범위를 확인 중입니다.'}</p>
-      <div className="headline-next"><span className="stage-label"><i className={`dot ${done ? i.status === 'resolved' ? 'ok' : 'warn' : 'info'}`} />{stage?.label || STAGE_FROM_STATUS[i.status]?.label}</span><p><b>다음</b> {next || '기록을 확인하세요.'}</p></div></section>
+      <div className="headline-next"><span className="stage-label"><i className={`dot ${done ? i.status === 'resolved' ? 'ok' : i.status === 'closed' ? '' : 'warn' : 'info'}`} />{stage?.label || STAGE_FROM_STATUS[i.status]?.label}</span><p><b>다음</b> {next || '기록을 확인하세요.'}</p></div></section>
     {(narrative.error || commands.error || detail.error || eventError) && <div className="room-error"><ErrorBox>{narrative.error ? '상황 정보' : commands.error ? '지시 목록' : detail.error ? '조치 승인 정보' : '실행 기록'} 갱신에 실패했습니다. 마지막으로 받은 내용을 표시합니다.</ErrorBox><button className="btn sm" onClick={reload}>다시 불러오기</button></div>}
     <nav className="room-tabs" aria-label="관제실 화면 전환">{([['flow', '흐름'], ['evidence', node ? '단계·근거' : '근거·해석'], ['chat', '대화']] as const).map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}{key === 'chat' && pending && <i className="dot warn" />}</button>)}</nav>
     <div className="room-columns">
@@ -132,8 +139,8 @@ function Room({ id }: { id: string }) {
           <div className="evidence-list">{groups.length === 0 && <div className="empty">{node ? '이 단계에 연결된 원문 근거가 없습니다.' : '이 종류의 원문이 없습니다.'}</div>}
             {groups.map(g => <EvidenceGroup key={g.key} g={g} open={opened.has(g.key)} onToggle={o => setOpened(s => { const next = new Set(s); if (o) next.add(g.key); else next.delete(g.key); return next; })} highlighted={!!focused && groupHas(g, focused)} name={name} chooseRole={chooseRole} interpreting={data.interpreting} />)}</div>
         </div></section>
-      <section className="room-pane chat-pane" aria-label="운영자 대화"><header className="pane-heading"><div><span className="pane-index">03</span><h2>운영자 대화</h2></div><span className="faint">{done ? '후속 작업' : '분석 지시'}</span></header><div className="chat-feed" ref={feed}><div className="chat-intro"><b>{done ? 'AI의 후속 작업을 지시하세요' : '분석에 방향을 더하세요'}</b><p>{done ? '지시 → 계획 → 부작용 확인 → 실행 순서로 진행합니다. 확인 전에는 변경하지 않습니다.' : '지시는 다음 단계부터 반영합니다. 원문 근거와 운영자 지시는 구분하여 기록합니다.'}</p></div>{events.map(e => <EventEntry e={e} key={e.seq} />)}{approvals.map(a => <ActionApprovalCard action={a} key={`action-${a.id}`} onChange={reload} />)}{i.status === 'handed_off' && detail.data && <HandoffCard incident={i} onChange={reload} />}{(commands.data?.items ?? []).map(c => <CommandCard command={c} key={c.id} onChange={reload} />)}</div>
-        <div className="composer">{!done && <div className="ctrl"><span className="control-status">{control === 'paused' ? '일시정지됨' : control === 'stopping' ? '중단 중' : '자동 분석 중'}</span><button className="btn sm" disabled={busy || control === 'stopping'} onClick={() => void ctl(control === 'paused' ? 'resume' : 'pause')}>{control === 'paused' ? '재개' : '일시정지'}</button><button className="btn sm danger" disabled={busy || control === 'stopping'} onClick={() => void ctl('stop')}>중단</button></div>}<ErrorBox>{error}</ErrorBox>{sent && <p className="composer-notice" role="status">{sent}</p>}<form onSubmit={send}><textarea aria-label="운영자 메시지" rows={2} value={text} maxLength={done ? 8000 : 2000} placeholder={done ? 'AI에게 작업을 지시하세요 (실행 전 부작용을 확인합니다)' : 'AI 분석에 지시하세요 (다음 단계부터 반영)'} onChange={e => setText(e.target.value)} /><button className="btn primary" type="submit" disabled={busy || !text.trim()}>{busy ? '전송 중' : '보내기'}</button></form><small>비밀값은 대화에 쓰지 말고 전용 입력란을 사용하세요.</small></div>
+      <section className="room-pane chat-pane" aria-label="운영자 대화"><header className="pane-heading"><div><span className="pane-index">03</span><h2>운영자 대화</h2></div><span className="faint">{done ? '후속 작업' : '분석 지시'}</span></header><div className="chat-feed" ref={feed}><div className="chat-intro"><b>{!open ? '운영자가 종료한 장애입니다' : done ? 'AI의 후속 작업을 지시하세요' : '분석에 방향을 더하세요'}</b><p>{!open ? '기록 열람만 가능합니다. 새 작업은 다시 감지된 장애에서 지시하세요.' : done ? '지시 → 계획 → 부작용 확인 → 실행 순서로 진행합니다. 확인 전에는 변경하지 않습니다.' : '지시는 다음 단계부터 반영합니다. 원문 근거와 운영자 지시는 구분하여 기록합니다.'}</p></div>{events.map(e => <EventEntry e={e} key={e.seq} />)}{approvals.map(a => <ActionApprovalCard action={a} key={`action-${a.id}`} onChange={reload} />)}{i.status === 'handed_off' && detail.data && <HandoffCard incident={i} onChange={reload} />}{(commands.data?.items ?? []).map(c => <CommandCard command={c} key={c.id} onChange={reload} />)}{(changes.data?.items ?? []).map(c => <ChangeRequestCard change={c} key={c.id} onChange={changes.refresh} />)}{closable(i.status) && detail.data && <CloseCard incident={i} blocked={closeBlocked} onChange={reload} />}{i.status === 'closed' && <ClosedCard incident={i} />}</div>
+        <div className="composer">{!done && <div className="ctrl"><span className="control-status">{control === 'paused' ? '일시정지됨' : control === 'stopping' ? '중단 중' : '자동 분석 중'}</span><button className="btn sm" disabled={busy || control === 'stopping'} onClick={() => void ctl(control === 'paused' ? 'resume' : 'pause')}>{control === 'paused' ? '재개' : '일시정지'}</button><button className="btn sm danger" disabled={busy || control === 'stopping'} onClick={() => void ctl('stop')}>중단</button></div>}<ErrorBox>{error}</ErrorBox>{sent && <p className="composer-notice" role="status">{sent}</p>}{open && <form onSubmit={send}><textarea aria-label="운영자 메시지" rows={2} value={text} maxLength={done ? 8000 : 2000} placeholder={done ? 'AI에게 작업을 지시하세요 (실행 전 부작용을 확인합니다)' : 'AI 분석에 지시하세요 (다음 단계부터 반영)'} onChange={e => setText(e.target.value)} /><button className="btn primary" type="submit" disabled={busy || !text.trim()}>{busy ? '전송 중' : '보내기'}</button></form>}{open ? <small>비밀값은 대화에 쓰지 말고 전용 입력란을 사용하세요.</small> : <small>종료된 장애는 지시를 받지 않습니다.</small>}</div>
       </section></div>
   </div>;
 }

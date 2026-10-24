@@ -73,16 +73,22 @@ def effective_policy(level: str, mode: str) -> str:
     return base  # mode auto -> level default
 
 
-def check_action(cfg: AppConfig, kube: Any, action_type: str, ns: str, kind: str, name: str) -> dict:
+def check_action(cfg: AppConfig, kube: Any, action_type: str, ns: str, kind: str, name: str, *, system: str | None = None) -> dict:
     if action_type not in cfg.allowlist:
         raise Denied(f"action type {action_type!r} is not in the allowlist {cfg.allowlist}")
-    if ns != cfg.target_namespace:
-        raise Denied(f"target namespace {ns!r} is not the configured target namespace {cfg.target_namespace!r}")
+    if ns not in cfg.target_namespaces:
+        raise Denied(f"target namespace {ns!r} is not in configured targets {cfg.target_namespaces!r}")
     if kind != "Deployment":
         raise Denied(f"rollout_undo only supports Deployment, got {kind!r}")
     dep = kube.get_deployment(ns, name)
     if not dep:
         raise Denied(f"Deployment {ns}/{name} does not exist")
+    labels = (dep.get("metadata") or {}).get("labels") or {}
+    if not cfg.safe_actions.managed_label or not all(labels.get(k) == v for k, v in cfg.safe_actions.managed_label.items()):
+        raise Denied("Deployment lacks required managed label")
+    actual = labels.get("app.kubernetes.io/part-of")
+    if not actual or not actual.strip() or (system is not None and actual != system):
+        raise Denied("Deployment ownership system differs from incident system")
     return dep
 
 
@@ -119,7 +125,7 @@ def rollout_undo(kube: Any, ns: str, name: str, *, incident_id: int | None = Non
         if grant_key is None:
             raise Denied("approved rollback grant key unavailable")
         grant = rollback_grant.issue(grant_key, incident_id=incident_id, action_id=action_id,
-                                     name=name, expected_revision=K.revision_of(dep),
+                                     namespace=ns, name=name, expected_revision=K.revision_of(dep),
                                      expected_source=prev["metadata"]["name"])
         res = kube.request_rollback(ns, name, grant=grant)
     if (res["to_revision"] != K.revision_of(prev) or
@@ -240,7 +246,11 @@ def execute(session_factory, cfg: AppConfig, kube: Any, action_id: int, actor: s
             return ExecResult(act.id, act.status, act.reason)
         try:
             ns, kind, name = act.target.split("/", 2)
-            check_action(cfg, kube, act.type, ns, kind, name)
+            if not inc.system:
+                raise Denied("incident system is unobserved; ownership cannot be verified")
+            check_action(cfg, kube, act.type, ns, kind, name, system=inc.system)
+            if ns != inc.namespace or name != inc.workload:
+                raise Denied("action target differs from incident")
         except Denied as e:
             act.status, act.reason = "denied", str(e)
             audit(s, actor, "action_denied", inc.id, action_id=act.id, reason=str(e))

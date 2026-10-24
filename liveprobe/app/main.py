@@ -21,8 +21,8 @@ from . import db
 from .auth import require_user, require_webhook
 from .config import get_app_config, get_settings
 from .incidents import Signal
-from .models import (Action, AgentRun, AuditLog, Citation, Evidence, Incident, IncidentEvent, RagChunk, RoutingDecision,
-                     Setting)
+from .models import (INCIDENT_CLOSED_STATES, Action, AgentRun, AuditLog, Citation, Evidence, Incident, IncidentEvent,
+                     RagChunk, RoutingDecision, Setting)
 from .model_settings import ModelSettingsIn, RevisionConflict, read_settings, save_settings
 from .lifecycle import transition, update_run
 from .redact import redact_obj
@@ -90,6 +90,7 @@ def _start_background() -> None:
     safety.set_profile(prof.name)
     STATE["profile"] = {"active": prof.name, "requested": prof.requested, "downgraded_reason": prof.reason}
     engine = Engine(cfg, settings, kube, make_provider(cfg, settings), rag)
+    from .change_api import setup_changes; setup_changes(engine, STATE)
     from .command_api import recover_pending_commands
     from .commands import CommandService
     from .operator_kube import OperatorKube
@@ -124,9 +125,13 @@ def _start_background() -> None:
         STATE.update(flows=store, collector=collector)
     watchers = Watchers(kube, cfg, engine.on_signal, flow_store=store)
     watchers.start()
+    from .app_errors import AppErrorWatcher
+    app_errors = AppErrorWatcher(cfg, settings, engine.on_signal)
+    app_errors.start()
+    STATE["app_errors"] = app_errors
     STATE.update(engine=engine, watchers=watchers, kube=kube, ready=True)
     log.info("LiveProbe background services started (provider=%s, target=%s)", cfg.llm.provider,
-             cfg.target_namespace)
+             cfg.target_namespaces)
 
 
 @asynccontextmanager
@@ -149,6 +154,8 @@ async def lifespan(app: FastAPI):
         STATE["collector"].stop()
     if STATE.get("watchers"):
         STATE["watchers"].stop()
+    if STATE.get("app_errors"):
+        STATE["app_errors"].stop()
     if STATE.get("engine"):
         STATE["engine"].stop()
     if STATE.get("interpret") and hasattr(STATE["interpret"], "stop"):
@@ -163,6 +170,8 @@ app = FastAPI(title="LiveProbe", version="0.1.0", lifespan=lifespan, docs_url=No
 from .command_api import command_router
 from .commands import CommandError
 app.include_router(command_router(STATE))
+from .change_api import change_router
+app.include_router(change_router(STATE))
 
 
 @app.exception_handler(CommandError)
@@ -265,7 +274,9 @@ def post_message(iid: int, body: MessageIn, tasks: BackgroundTasks, user: str = 
         inc = s.get(Incident, iid)
         if inc is None:
             raise HTTPException(404, "incident not found")
-        finished = inc.status in ("resolved", "handed_off", "failed")
+        if inc.status == "closed":
+            raise HTTPException(409, "incident is closed by an operator; it accepts no further instructions")
+        finished = inc.status in INCIDENT_CLOSED_STATES
     if not body.body.strip():
         raise HTTPException(422, "message is empty")
     if len(body.body) > 2000:
@@ -284,7 +295,7 @@ def control(iid: int, body: ControlIn, user: str = Depends(require_user)):
         inc = s.get(Incident, iid)
         if inc is None:
             raise HTTPException(404, "incident not found")
-        if inc.status in ("resolved", "handed_off", "failed"):
+        if inc.status in INCIDENT_CLOSED_STATES:
             raise HTTPException(409, f"incident is {inc.status}; nothing is running")
     return {"state": runlog.set_control(iid, body.action)}
 
@@ -312,12 +323,12 @@ def topology(user: str = Depends(require_user)):
         raise HTTPException(503, "cluster client not ready")
     store = store or FlowStore()  # collection disabled: every flow field stays empty and freshness says never_connected
     with db.session() as s:
-        incidents = [{"id": i.id, "namespace": i.namespace, "workload": i.workload, "status": i.status,
+        incidents = [{"id": i.id, "namespace": i.namespace, "workload": i.workload, "system": i.system, "environment": get_app_config().environment(i.namespace), "status": i.status,
                       "severity_level": i.severity_level, "title": i.title,
                       "claimed": bool((i.handoff or {}).get("claimed_by")),
                       "updated_ts": i.updated_at.timestamp() if i.updated_at else 0}
-                     for i in s.scalars(select(Incident).where(Incident.status.not_in(("resolved", "failed"))))]
-    return build_topology(_inventory(kube), store.snapshot(), store.freshness(), incidents)
+                     for i in s.scalars(select(Incident).where(Incident.status.not_in(("resolved", "failed", "closed"))))]
+    return build_topology(_inventory(kube), store.snapshot(), store.freshness(), incidents, cfg=get_app_config())
 
 
 # ------------------------------------------------------------------ operations overview (P15)
@@ -363,7 +374,7 @@ def operations_overview(user: str = Depends(require_user)):
         routes = list(s.scalars(select(RoutingDecision).where(RoutingDecision.incident_id.in_(ids)).order_by(RoutingDecision.id))) if ids else []
         runs = list(s.scalars(select(AgentRun).where(AgentRun.incident_id.in_(ids)).order_by(AgentRun.id))) if ids else []
         evs = list(s.scalars(select(RunEvent).where(RunEvent.incident_id.in_(ids)).order_by(RunEvent.seq))) if ids else []
-        incidents = [{"id": i.id, "namespace": i.namespace, "workload": i.workload, "status": i.status,
+        incidents = [{"id": i.id, "namespace": i.namespace, "workload": i.workload, "system": i.system, "environment": get_app_config().environment(i.namespace), "status": i.status,
                       "severity_level": i.severity_level, "title": i.title, "created_at": iso(i.created_at),
                       "updated_ts": i.updated_at.timestamp() if i.updated_at else 0,
                       "claimed": bool((i.handoff or {}).get("claimed_by")),
@@ -373,9 +384,9 @@ def operations_overview(user: str = Depends(require_user)):
         day_start = now.astimezone(ZoneInfo("Asia/Seoul")).replace(hour=0, minute=0, second=0, microsecond=0)
         counts = dict(s.execute(select(Incident.status, func.count()).where(Incident.created_at >= day_start)
                                 .group_by(Incident.status)).all())
-        today = {"total": sum(counts.values()), **{k: counts.get(k, 0) for k in ("resolved", "handed_off", "failed")}}
+        today = {"total": sum(counts.values()), **{k: counts.get(k, 0) for k in ("resolved", "handed_off", "failed", "closed")}}
     return redact_obj(ov.assemble(inv, values, events=events, incidents=incidents, today=today,
-                                 errors=errors, store=STATE.get("flows")))
+                                 errors=errors, store=STATE.get("flows"), cfg=get_app_config()))
 
 
 # ------------------------------------------------------------------ incidents
@@ -392,7 +403,7 @@ def _agg(s, ids: list[int]) -> dict[int, tuple[int, float | None]]:
 def _summary(i: Incident, agg: dict[int, tuple[int, float | None]]) -> dict:
     n, cost = agg.get(i.id, (0, 0.0))
     return {
-        "id": i.id, "title": i.title, "namespace": i.namespace, "workload": i.workload, "status": i.status,
+        "id": i.id, "title": i.title, "namespace": i.namespace, "workload": i.workload, "system": i.system, "environment": get_app_config().environment(i.namespace), "status": i.status,
         "severity_level": i.severity_level, "signal_count": i.signal_count, "created_at": iso(i.created_at),
         "updated_at": iso(i.updated_at), "closed_at": iso(i.closed_at), "total_cost_usd": round(cost, 6) if cost is not None else None,
         "agent_run_count": n,
@@ -437,7 +448,7 @@ def get_incident(iid: int, user: str = Depends(require_user)):
             raise HTTPException(404, "incident not found")
         incident = {**_summary(inc, _agg(s, [iid])), "summary": inc.summary, "status_reason": inc.status_reason,
                     "signal_reasons": inc.signal_reasons or [], "handoff": inc.handoff,
-                    "family_hint": inc.family_hint}
+                    "family_hint": inc.family_hint, "remediation": (inc.handoff or {}).get("remediation")}
         evidence = [{"id": e.id, "source": e.source, "target": e.target, "collected_at": iso(e.collected_at),
                      "payload": e.payload, "error": e.error}
                     for e in s.scalars(select(Evidence).where(Evidence.incident_id == iid).order_by(Evidence.id))]
@@ -512,6 +523,62 @@ def claim_handoff(iid: int, user: str = Depends(require_user)):
         db.audit(s, user, "handoff_claimed", iid)
     broker.publish(iid, "updated", "handed_off")
     return redact_obj(handoff)
+
+
+class CloseIn(BaseModel):
+    reason: str
+    confirm: bool = False
+
+
+# Closing only records the operator's decision. It must never be the side door to a cluster change.
+_CLOSABLE = ("handed_off", "action_pending")
+_LIVE_COMMANDS = ("planning", "awaiting_confirmation", "awaiting_secret", "executing", "rolling_back")
+
+
+@app.post("/api/incidents/{iid}/close")
+def close_incident(iid: int, body: CloseIn, user: str = Depends(require_user)):
+    """End an incident the AI already stopped on (hand-off, or an approval nobody will act on). No cluster change."""
+    from . import runlog
+    from .models import OperatorCommand
+    reason = body.reason.strip()
+    if not body.confirm:
+        raise HTTPException(422, "explicit confirmation is required")
+    if not reason or len(reason) > 500:
+        raise HTTPException(422, "reason must be 1-500 characters")
+    with db.session() as s:
+        inc = s.scalar(select(Incident).where(Incident.id == iid).with_for_update())
+        if inc is None:
+            raise HTTPException(404, "incident not found")
+        handoff = dict(inc.handoff or {})
+        if inc.status == "closed":
+            return redact_obj(_closed(inc, handoff))  # idempotent: the first recorded decision stands
+        if inc.status not in _CLOSABLE:
+            raise HTTPException(409, f"incident is {inc.status}; only a hand-off or a stale approval can be closed")
+        if handoff.get("claimed_by") and handoff["claimed_by"] != user:
+            raise HTTPException(409, "handoff is claimed by another operator")
+        if s.scalar(select(func.count()).select_from(Action).where(
+                Action.incident_id == iid, Action.status.in_(("proposed", "pending_approval", "approved", "executing")))):
+            raise HTTPException(409, "an action is still pending or running; approve or reject it first")
+        if s.scalar(select(func.count()).select_from(OperatorCommand).where(
+                OperatorCommand.incident_id == iid, OperatorCommand.status.in_(_LIVE_COMMANDS))):
+            raise HTTPException(409, "an operator command is still in progress; finish or cancel it first")
+        previous = inc.status
+        transition(inc, "closed")
+        inc.status_reason = f"운영자 종료: {reason}"
+        inc.handoff = {**handoff, "closed_by": user, "closed_at": iso(inc.closed_at), "close_reason": reason,
+                       "closed_from": previous}
+        update_run(s, iid, "succeeded", "closed", inc.status_reason)
+        db.audit(s, user, "incident_closed", iid, previous_status=previous, reason=reason, cluster_changed=False)
+        out = _closed(inc, inc.handoff)
+    broker.publish(iid, "closed", "closed")
+    runlog.emit(iid, "completed", f"운영자 종료: {reason}", {"outcome": "closed", "previous_status": out["closed_from"]},
+                actor=user)
+    return redact_obj(out)
+
+
+def _closed(inc: Incident, handoff: dict) -> dict:
+    return {"id": inc.id, "status": inc.status, "closed_by": handoff.get("closed_by"), "closed_at": handoff.get("closed_at"),
+            "close_reason": handoff.get("close_reason"), "closed_from": handoff.get("closed_from"), "cluster_changed": False}
 
 # ------------------------------------------------------------------ actions
 class RejectIn(BaseModel):
@@ -630,7 +697,7 @@ def status(user: str = Depends(require_user)):
     return {"ready": STATE["ready"], "rag_chunks": STATE["rag_chunks"], "watchers": w.status if w else {},
             "llm": {"provider": cfg.llm.provider,
                     "roles": {k: v.model_dump() for k, v in cfg.llm.roles.items()}},
-            "target_namespace": cfg.target_namespace, "allowlist": cfg.allowlist}
+            "target_namespace": cfg.target_namespace, "target_namespaces": cfg.target_namespaces, "allowlist": cfg.allowlist}
 
 
 # ------------------------------------------------------------------ webhook
@@ -641,6 +708,8 @@ ALERT_KIND = {
     "TargetServiceNoEndpoints": "endpoint",
     "OrderHigh5xxRate": "app",
     "InventoryHigh5xxRate": "app",
+    "TargetHigh5xxRate": "app",
+    "High5xx": "app",
     "TargetHighLatency": "app",
     "TargetConnectionPoolExhausted": "app",
 }
@@ -649,7 +718,7 @@ ALERT_KIND = {
 def alert_signal(alert: dict, cfg, kube) -> Signal | None:
     labels = alert.get("labels") or {}
     name, ns = labels.get("alertname"), labels.get("namespace")
-    if ns != cfg.target_namespace or name not in ALERT_KIND:
+    if ns not in cfg.target_namespaces or name not in ALERT_KIND:
         return None
     kind = ALERT_KIND[name]
     if kind == "endpoint" and labels.get("endpoint"):

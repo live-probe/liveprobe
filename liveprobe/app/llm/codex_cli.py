@@ -11,7 +11,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, SchemaError, ValidationError
 
-from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema
+from .base import LLMError, LLMResult, Usage, parse_json_object, strict_schema, validation_schema
 
 _AUTH_HINTS = ("401", "403", "unauthorized", "not logged in", "login required",
                "token expired", "expired token", "refresh token", "authentication failed",
@@ -142,7 +142,7 @@ class CodexCLIProvider:
             e.usage, e.duration_ms = usage, duration_ms
             raise
         try:
-            Draft202012Validator(strict_schema(schema)).validate(data)
+            Draft202012Validator(validation_schema(schema)).validate(data)
         except SchemaError:
             raise LLMError("config", "invalid output schema", usage=usage,
                            duration_ms=duration_ms) from None

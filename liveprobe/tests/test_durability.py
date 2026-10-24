@@ -40,7 +40,7 @@ def test_migration_reversible_and_keeps_incidents(db_url):
         assert c.execute(text("select version_num from alembic_version")).scalar_one() == "0002"
     db.run_migrations(db_url)
     with db.engine().connect() as c:
-        assert c.execute(text("select version_num from alembic_version")).scalar_one() == "0008"
+        assert c.execute(text("select version_num from alembic_version")).scalar_one() == __import__("alembic.script", fromlist=["ScriptDirectory"]).ScriptDirectory(str(ROOT / "alembic")).get_current_head()
         assert c.execute(text("select count(*) from incidents where id=:id"), {"id": iid}).scalar_one() == 1
 
 

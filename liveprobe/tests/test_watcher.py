@@ -17,7 +17,7 @@ NS = "liveprobe-target"
 
 
 def test_caller_5xx_merges_to_callee_fingerprint():
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     assert fingerprint(Signal(NS, "App", "order", "OrderHigh5xxRate", "alertmanager"), cfg) == (
         f"{NS}/inventory", "inventory")
 
@@ -25,13 +25,13 @@ def test_caller_5xx_merges_to_callee_fingerprint():
 @needs_db
 def test_stale_caller_5xx_does_not_open_new_incident(db_url):
     with db.session() as s:
-        inc, outcome = ingest(s, AppConfig(), Signal(NS, "App", "order", "OrderHigh5xxRate", "alertmanager"))
+        inc, outcome = ingest(s, AppConfig(target_namespace="liveprobe-target", ), Signal(NS, "App", "order", "OrderHigh5xxRate", "alertmanager"))
         assert inc is None and outcome == "suppressed"
 
 
 @needs_db
 def test_signal_dedup_and_window(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     with db.session() as s:
         a, outcome = ingest(s, cfg, Signal(NS, "Deployment", "inventory", "ImagePullBackOff", "pod_watch"), now)
@@ -55,7 +55,7 @@ def test_signal_dedup_and_window(db_url):
 
 @needs_db
 def test_restart_interruption_suppresses_same_fault_beyond_normal_cooldown(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     sig = Signal(NS, "Service", "inventory", "NoEndpoints", "endpoint_poller")
     with db.session() as s:
@@ -73,7 +73,7 @@ def test_pod_owner_resolution_and_signal():
     pod = k.pods[1]
     assert deployment_for_pod(k, NS, pod) == "inventory"
     emitted = []
-    w = Watchers(k, AppConfig(), emitted.append)
+    w = Watchers(k, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     w.handle_pod(pod)
     assert len(emitted) == 1 and emitted[0].reason == "ImagePullBackOff"
     pod["metadata"]["deletionTimestamp"] = "2026-09-25T11:00:00Z"
@@ -92,7 +92,7 @@ def test_deployment_summary_tracks_reused_replicaset_rollout():
 def test_endpoint_grace_then_signal_and_restore():
     k = family4_kube()
     emitted = []
-    w = Watchers(k, AppConfig(), emitted.append)
+    w = Watchers(k, AppConfig(target_namespace="liveprobe-target", ), emitted.append)
     w.poll_endpoints_once(now=10)
     assert not emitted
     w.poll_endpoints_once(now=41)
@@ -108,7 +108,7 @@ def test_stale_open_merge_finds_matching_older_reason(db_url, intervening):
     from app import db
     from app.config import AppConfig
     from app.incidents import Signal, ingest
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     image = Signal("apps", "Deployment", "api", "ImagePullBackOff", "pod_watch")
     oom = Signal("apps", "Deployment", "api", "TargetWorkloadOOMKilled", "alertmanager")

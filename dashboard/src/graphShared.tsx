@@ -1,10 +1,11 @@
 import './graphControls.css';
+import './diagramTheme.css';
 import type { ReactNode } from 'react';
 import { Handle, Position, useReactFlow, type AriaLabelConfig } from '@xyflow/react';
 /** Zoom controls sit in their own row under the canvas so they never cover nodes; the legend shares that row. */
 export function GraphControls({ label, children }: { label: string; children?: ReactNode }) {
   const rf = useReactFlow();
-  return <div className="graph-toolbar" aria-label={`${label} 조작`}><button type="button" aria-label={`${label} 확대`} onClick={() => void rf.zoomIn()}>＋</button><button type="button" aria-label={`${label} 축소`} onClick={() => void rf.zoomOut()}>−</button><button type="button" aria-label={`${label} 전체 보기`} onClick={() => void rf.fitView({ padding: .06, maxZoom: 1 })}>전체 보기</button><div className="graph-legend">{children}</div></div>;
+  return <div className="graph-toolbar" aria-label={`${label} 조작`}><button type="button" aria-label={`${label} 확대`} onClick={() => void rf.zoomIn()}>＋</button><button type="button" aria-label={`${label} 축소`} onClick={() => void rf.zoomOut()}>−</button><button type="button" aria-label={`${label} 전체 보기`} onClick={() => void rf.fitView({ padding: .06, maxZoom: 1 })}><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="M6 2H2v4m8-4h4v4M2 10v4h4m8-4v4h-4" /></svg>전체 보기</button><div className="graph-legend">{children}</div></div>;
 }
 export const GRAPH_ARIA: Partial<AriaLabelConfig> = {
   'node.a11yDescription.default': '엔터 키로 단계 상세를 엽니다.', 'node.a11yDescription.keyboardDisabled': '엔터 키로 상세를 엽니다.',

@@ -24,6 +24,7 @@ REASON_CLASS = {
     "CrashLoopBackOff": "crash",
     "NoEndpoints": "endpoints", "TargetServiceNoEndpoints": "endpoints",
     "High5xx": "http5xx", "OrderHigh5xxRate": "http5xx",
+    "InventoryHigh5xxRate": "http5xx", "TargetHigh5xxRate": "http5xx", "ApplicationException": "http5xx",
 }
 FAMILY_HINT = {"image": "image_pull", "crash": "crashloop", "endpoints": "endpoint_loss", "http5xx": "http_5xx"}
 
@@ -41,14 +42,16 @@ class Signal:
 def fingerprint(sig: Signal, cfg: AppConfig) -> tuple[str, str]:
     """Returns (fingerprint, workload). Caller-side 5xx maps to its (single) callee via the dependency map."""
     workload = sig.name
-    if REASON_CLASS.get(sig.reason) == "http5xx":
+    # Preserve pre-P18 caller/callee correlation only for the archived single-target installation.
+    # In multi-environment deployments a 5xx and an exception identify the SAME emitting workload.
+    if cfg.target_namespaces == ["liveprobe-target"] and REASON_CLASS.get(sig.reason) == "http5xx" and sig.reason != "ApplicationException":
         callees = cfg.dependencies.get(sig.name) or []
         if len(callees) == 1:
             workload = callees[0]
     return f"{sig.namespace}/{workload}", workload
 
 
-def ingest(s: Session, cfg: AppConfig, sig: Signal, now: datetime | None = None) -> tuple[Incident | None, str]:
+def ingest(s: Session, cfg: AppConfig, sig: Signal, now: datetime | None = None, *, kube=None) -> tuple[Incident | None, str]:
     """Create or merge. Returns (incident, outcome) with outcome in created|merged|suppressed."""
     now = now or datetime.now(timezone.utc)
     fp, workload = fingerprint(sig, cfg)
@@ -86,7 +89,7 @@ def ingest(s: Session, cfg: AppConfig, sig: Signal, now: datetime | None = None)
         # Caller 5xx is supporting evidence for a dependency incident, not
         # sufficient by itself to open an inventory incident. Alertmanager can
         # repeat a stale firing alert after the selector has been repaired.
-        if rclass == "http5xx":
+        if cfg.target_namespaces == ["liveprobe-target"] and rclass == "http5xx" and sig.reason != "ApplicationException":
             return None, "suppressed"
 
         # Interrupted analysis is deliberately never replayed. Suppress the
@@ -110,8 +113,15 @@ def ingest(s: Session, cfg: AppConfig, sig: Signal, now: datetime | None = None)
         if recent_closed and any(REASON_CLASS.get(r, r) == rclass for r in recent_closed.signal_reasons):
             return recent_closed, "suppressed"
 
+        system = None
+        if kube is not None:
+            try:
+                dep = kube.get_deployment(sig.namespace, workload)
+                system = (((dep or {}).get("metadata") or {}).get("labels") or {}).get("app.kubernetes.io/part-of") or None
+            except Exception:
+                log.warning("system label unavailable ns=%s workload=%s", sig.namespace, workload)
         inc = Incident(
-            fingerprint=fp, family_hint=FAMILY_HINT.get(rclass), namespace=sig.namespace, workload=workload,
+            system=system, fingerprint=fp, family_hint=FAMILY_HINT.get(rclass), namespace=sig.namespace, workload=workload,
             status="open", title=f"{sig.reason} on {sig.kind}/{sig.name}", signal_count=1,
             signal_reasons=[sig.reason], created_at=now, updated_at=now,
         )
