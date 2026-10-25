@@ -20,7 +20,7 @@ from conftest import family1_kube
 def test_each_alert_maps_to_expected_workload(name, labels, expected):
     assert name in ALERT_KIND
     signal = alert_signal({"labels": {"alertname": name, "namespace": "liveprobe-target", **labels}},
-                          SimpleNamespace(target_namespace="liveprobe-target"), family1_kube())
+                          SimpleNamespace(target_namespaces=["liveprobe-target"]), family1_kube())
     assert signal is not None
     assert (signal.kind, signal.name) == expected
     assert signal.reason == name
@@ -32,5 +32,5 @@ def test_each_alert_maps_to_expected_workload(name, labels, expected):
     {"alertname": "TargetWorkloadOOMKilled", "namespace": "liveprobe-target", "pod": "missing"},
 ])
 def test_unrecognized_or_unresolvable_alert_ignored(labels):
-    assert alert_signal({"labels": labels}, SimpleNamespace(target_namespace="liveprobe-target"),
+    assert alert_signal({"labels": labels}, SimpleNamespace(target_namespaces=["liveprobe-target"]),
                         family1_kube()) is None

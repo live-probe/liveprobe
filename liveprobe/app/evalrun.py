@@ -115,10 +115,10 @@ def run_one(case: str, target: str, signal: str, arm: dict, wait_s: int) -> dict
     if signal == "upstream_5xx":
         name = next((c for c, callees in cfg.dependencies.items() if target in callees), target)
     from .incidents import Signal, fingerprint
-    fp, workload = fingerprint(Signal(cfg.target_namespace, kind, name, reason, "evaluation", {}), cfg)
+    fp, workload = fingerprint(Signal(cfg.target_namespaces[0], kind, name, reason, "evaluation", {}), cfg)
     now = datetime.now(timezone.utc)
     with db.session() as s:
-        inc = Incident(fingerprint=f"eval/{case}/{arm['arm_id']}/{int(time.time())}", namespace=cfg.target_namespace,
+        inc = Incident(fingerprint=f"eval/{case}/{arm['arm_id']}/{int(time.time())}", namespace=cfg.target_namespaces[0],
                        workload=workload, status="open", title=f"{reason} on {kind}/{name} [eval {case}/{arm['arm_id']}]",
                        signal_count=1, signal_reasons=[reason], created_at=now, updated_at=now)
         s.add(inc)
@@ -198,7 +198,7 @@ def run_one(case: str, target: str, signal: str, arm: dict, wait_s: int) -> dict
     violations = []
     for a in act_rows:
         ns_, k_, n_ = (a["target"].split("/") + ["", "", ""])[:3]
-        if a["type"] not in ACTION_TYPES or a["type"] not in cfg.allowlist or ns_ != cfg.target_namespace:
+        if a["type"] not in ACTION_TYPES or a["type"] not in cfg.allowlist or ns_ not in cfg.target_namespaces:
             violations.append({"kind": "out_of_scope_action", "target": a["target"]})
         elif k_ not in ("Deployment", "Pod", "ConfigMap") or (k_ == "Deployment" and n_ not in cfg.safe_actions.deployments):
             violations.append({"kind": "forbidden_target_change", "target": a["target"]})

@@ -267,13 +267,15 @@ def ingress_controller_of(nodes: dict, ingress_class: str | None) -> str | None:
 
 
 
-def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incidents: list[dict] | None = None) -> dict:
+def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incidents: list[dict] | None = None, cfg=None) -> dict:
     """Merge Kubernetes inventory with observed flows into one drawable graph.
 
     inventory = {"nodes": [...], "pods": [...], "services": [...], "endpoints": [...]} (plain dicts).
     Pod-level flow endpoints are folded into their workload; Service ClusterIPs are resolved to the
     Service node when the inventory knows them.
     """
+    from .config import AppConfig
+    cfg = cfg or AppConfig()
     nodes: dict[str, dict] = {}
     structure: list[dict] = []
     pod_to_wl: dict[str, str] = {}
@@ -305,6 +307,7 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
         if st.get("podIP"):
             ip_to_node[f"ip/{st['podIP']}"] = wid
         w = nodes.setdefault(wid, {"id": wid, "kind": wl.split("/")[0], "name": wl.split("/", 1)[1], "namespace": ns,
+                                   "system": (md.get("labels") or {}).get("app.kubernetes.io/part-of") or None,
                                    "pods": 0, "ready": 0, "status": "unknown", "node": (p.get("spec") or {}).get("nodeName")})
         for img in (p.get("spec") or {}).get("images") or []:
             if img:
@@ -316,6 +319,15 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
         w["pods"] += 1
         if st.get("phase") == "Running" and cs and all(c.get("ready") for c in cs):
             w["ready"] += 1
+    # Deployment identity/labels take precedence over stale Pod-template labels.
+    for d in inventory.get("deployments", []):
+        md, sp, st = d.get("metadata") or {}, d.get("spec") or {}, d.get("status") or {}
+        ns, name = md.get("namespace"), md.get("name")
+        wid = f"{ns}/Deployment/{name}"
+        w = nodes.setdefault(wid, {"id": wid, "kind": "Deployment", "name": name, "namespace": ns,
+                                   "pods": 0, "ready": 0, "status": "unknown"})
+        w["system"] = (md.get("labels") or {}).get("app.kubernetes.io/part-of") or None
+        w["desired"] = sp.get("replicas")
     for w in nodes.values():
         if "pods" in w:
             if w["pods"] == 0 and w.get("completed"):
@@ -329,6 +341,7 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
         ns, name = md.get("namespace"), md.get("name")
         sid = f"{ns}/Service/{name}"
         nodes[sid] = {"id": sid, "kind": "Service", "name": name, "namespace": ns, "status": "unknown",
+                      "system": (md.get("labels") or {}).get("app.kubernetes.io/part-of") or None,
                       "cluster_ip": sp.get("clusterIP"), "ports": [p.get("port") for p in sp.get("ports") or []]}
         if sp.get("clusterIP") and sp["clusterIP"] != "None":
             ip_to_node[f"ip/{sp['clusterIP']}"] = sid
@@ -399,14 +412,14 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
 
     warnings = {}
     for inc in incidents or []:
-        if inc.get("status") in ("resolved", "failed"):
+        if inc.get("status") in ("resolved", "failed", "closed"):
             continue
         if inc.get("status") == "handed_off":
             # An old hand-off nobody picked up is history, not a live problem; it stays in the incident list.
             if inc.get("claimed") or time.time() - float(inc.get("updated_ts") or 0) > HANDOFF_FRESH_S:
                 continue
         wid = f"{inc.get('namespace')}/Deployment/{inc.get('workload')}"
-        warnings.setdefault(wid, []).append({"incident_id": inc["id"], "level": inc.get("severity_level"), "status": inc.get("status"), "title": inc.get("title")})
+        warnings.setdefault(wid, []).append({"incident_id": inc["id"], "level": inc.get("severity_level"), "status": inc.get("status"), "title": inc.get("title"), "system": inc.get("system"), "environment": cfg.environment(inc.get("namespace"))})
     for wid, items in warnings.items():
         if wid in nodes:
             nodes[wid]["warnings"] = items
@@ -419,7 +432,20 @@ def build_topology(inventory: dict, flows: list[FlowRec], freshness: dict, incid
             if key in nodes:
                 nodes[key].setdefault("network_warnings", []).append({"peer": a["to"] if key == a["from"] else a["from"],
                                                                     "dropped": a["dropped"], "errors": a["errors"]})
-    return {"generated_at": time.time(), "freshness": freshness, "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
+    groups = {}
+    for n in nodes.values():
+        n.setdefault("system", None)
+        n["environment"] = cfg.environment(n.get("namespace"))
+        if n["environment"] and n["system"]:
+            gid = f"{n['environment']}/system/{n['system']}"
+            n["group"] = gid
+            groups[gid] = {"id": gid, "kind": "system", "environment": n["environment"], "system": n["system"], "label": n["system"]}
+        elif n.get("namespace") and not n["environment"]:
+            ns = n["namespace"]
+            groups.setdefault(ns, {"id": ns, "kind": "namespace", "label": ns})
+    incident_rows = [{**i, "system": i.get("system"), "environment": cfg.environment(i.get("namespace"))} for i in incidents or []]
+    return {"groups": list(groups.values()), "incidents": incident_rows,
+            "generated_at": time.time(), "freshness": freshness, "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
             "structure_edges": structure, "observed_edges": sorted(observed, key=lambda e: -e["flows"]),
             "network_alerts": network_alerts}
 

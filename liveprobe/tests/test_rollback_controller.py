@@ -45,6 +45,8 @@ def test_exact_previous_revision_produces_cas_image_only_patch():
 
 def test_api_kube_client_has_no_direct_patch_and_rejects_unconfigured_controller(monkeypatch):
     from app.k8s import Kube
+    from app.config import AppConfig
+    monkeypatch.setattr("app.config.get_app_config", lambda: AppConfig(target_namespace="liveprobe-target"))
     assert not hasattr(Kube, "patch_deployment_json")
     monkeypatch.delenv("ROLLBACK_CONTROLLER_URL", raising=False)
     kube = Kube.__new__(Kube)

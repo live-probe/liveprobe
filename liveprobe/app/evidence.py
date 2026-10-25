@@ -58,6 +58,7 @@ class Bundle:
     logs: list[str] = field(default_factory=list)
     nodes: list[dict] = field(default_factory=list)
     configs: list[dict] = field(default_factory=list)
+    code_refs: dict = field(default_factory=dict)
 
     def add(self, source: str, target: str, payload: Any = None, error: str | None = None,
             collected_at: datetime | None = None, *, supporting: bool = False) -> None:
@@ -377,6 +378,19 @@ def _collect_loki(settings: Settings, ns: str, workload: str, log_apps: list[str
     return b
 
 
+def _collect_code_refs(settings: Settings, ns: str, workload: str, since: datetime | None) -> Bundle:
+    from .app_errors import fetch_exceptions, code_evidence
+    b = Bundle(ns, workload)
+    start, end = loki_window(since)
+    try:
+        b.code_refs = code_evidence(fetch_exceptions(settings, [ns], start.timestamp(), end.timestamp(), [workload]))
+        b.add("code_refs", f"{ns}/Deployment/{workload}", b.code_refs)
+    except Exception as exc:
+        b.code_refs = code_evidence([], "예외 로그 조회 실패: " + type(exc).__name__)
+        b.add("code_refs", f"{ns}/Deployment/{workload}", b.code_refs, error=type(exc).__name__)
+    return b
+
+
 def collect(kube: K.Kube, cfg: AppConfig, settings: Settings, ns: str, workload: str,
             since: datetime | None = None) -> Bundle:
     """Independent Kube/Prom/Loki reads run in three bounded workers.
@@ -389,7 +403,7 @@ def collect(kube: K.Kube, cfg: AppConfig, settings: Settings, ns: str, workload:
     callers = sorted(c for c, callees in cfg.dependencies.items() if workload in callees)
     apps = sorted({workload, *callers})
     log_apps = sorted({*apps, *cfg.dependencies.get(workload, [])})
-    pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="evidence")
+    pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="evidence")
     deadline = t0 + COLLECT_TIMEOUT_S
     progress_lock = threading.Lock()
     progress = None
@@ -403,14 +417,15 @@ def collect(kube: K.Kube, cfg: AppConfig, settings: Settings, ns: str, workload:
 
     jobs = [pool.submit(_collect_kube, kube, cfg, ns, workload, deadline, publish),
             pool.submit(_collect_prom, settings, ns, workload, apps, deadline),
-            pool.submit(_collect_loki, settings, ns, workload, log_apps, since)]
+            pool.submit(_collect_loki, settings, ns, workload, log_apps, since),
+            pool.submit(_collect_code_refs, settings, ns, workload, since)]
     groups = [("deployment", "pod_status", "service", "endpoints", "k8s_event", "node", "configmap"),
-              ("prometheus",), ("loki",)]
+              ("prometheus",), ("loki",), ("code_refs",)]
     targets = {"deployment": f"{ns}/Deployment/{workload}", "pod_status": f"{ns}/pods(app={workload})",
                "service": f"{ns}/Service/{workload}", "endpoints": f"{ns}/Endpoints/{workload}",
                "k8s_event": f"{ns}/events({workload})", "node": f"{ns}/nodes({workload})",
                "configmap": f"{ns}/configmaps({workload})", "prometheus": f"{ns}/{','.join(apps)}",
-               "loki": f"{ns}/{','.join(log_apps)}"}
+               "loki": f"{ns}/{','.join(log_apps)}", "code_refs": f"{ns}/Deployment/{workload}"}
     parts = []
     try:
         done, _ = wait(jobs, timeout=max(0, COLLECT_TIMEOUT_S - (time.monotonic() - t0)))
@@ -447,14 +462,14 @@ def collect(kube: K.Kube, cfg: AppConfig, settings: Settings, ns: str, workload:
         # A running Python thread cannot be killed. Its result stays private;
         # socket timeouts bound its I/O and it can never mutate the returned bundle.
         pool.shutdown(wait=False, cancel_futures=True)
-    kb, pb, lb = parts
+    kb, pb, lb, cb = parts
     b = Bundle(namespace=ns, workload=workload,
                deployment=kb.deployment, pods=kb.pods, service=kb.service,
                events=kb.events, nodes=kb.nodes, configs=kb.configs,
-               metrics=pb.metrics, logs=lb.logs)
+               metrics=pb.metrics, logs=lb.logs, code_refs=cb.code_refs or {"frames": [], "exceptions": [], "reason": "예외 로그 수집 미완료"})
     order = {s: i for i, s in enumerate(("deployment", "pod_status", "service", "endpoints", "k8s_event",
-                                        "prometheus", "loki", "node", "configmap"))}
-    b.items = sorted([*kb.items, *pb.items, *lb.items], key=lambda item: order[item.source])
+                                        "prometheus", "loki", "node", "configmap", "code_refs"))}
+    b.items = sorted([*kb.items, *pb.items, *lb.items, *cb.items], key=lambda item: order[item.source])
     b.callers = [{"name": c,
                   "http_5xx_rate_per_s": (b.metrics.get("http_5xx_rate_per_s") or {}).get(c),
                   "http_rate_per_s": (b.metrics.get("http_rate_per_s") or {}).get(c)} for c in callers]
@@ -477,5 +492,6 @@ def compact_summary(b: Bundle) -> dict:
         "E7_error_logs": b.logs[:15],
         "E8_node": b.nodes,
         "E9_config": b.configs,
+        "E8_code_refs": b.code_refs or {"frames": [], "exceptions": [], "reason": "최근 예외 로그 미관측"},
         "collection_errors": [f"{i.source}: {i.error}" for i in b.items if i.error],
     })

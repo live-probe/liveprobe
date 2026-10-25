@@ -267,7 +267,7 @@ def test_independent_kube_prom_loki_queries_overlap_with_private_results(monkeyp
     assert len(set(workers.values())) == 3
     result_ids = [bundles[tid] for tid in workers.values()]
     assert all(a.isdisjoint(c) for i, a in enumerate(result_ids) for c in result_ids[i+1:])
-    assert [i.source for i in b.items] == ["deployment", "pod_status", "service", "endpoints", "k8s_event", "prometheus", "loki"]
+    assert [i.source for i in b.items] == ["deployment", "pod_status", "service", "endpoints", "k8s_event", "prometheus", "loki", "code_refs"]
     assert list(E.compact_summary(b))[:10] == ["note", "E1_deployment", "E2_pods", "E3_service", "E4_callers",
                                              "E5_recent_events", "E6_metrics", "E7_error_logs", "E8_node", "E9_config"]
 
@@ -356,7 +356,7 @@ def test_timed_out_workers_stop_starting_followup_requests(monkeypatch, offline,
         release.set()
     for f in futures:
         f.result(timeout=1)
-    assert bounds == [3]
+    assert bounds == [4]
     assert len(calls) == 1
 
 

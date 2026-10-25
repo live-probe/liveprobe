@@ -139,9 +139,10 @@ class ApprovedConfigVersion(BaseModel):
 
 class SafeActionPolicy(BaseModel):
     """Bounds for KAN-55/KAN-135 typed actions. Unknown/absent bounds fail closed."""
-    deployments: list[str] = Field(default_factory=lambda: ["inventory", "order"])
-    ownership_labels: dict[str, str] = Field(
-        default_factory=lambda: {"app.kubernetes.io/part-of": "liveprobe-target"})
+    # Legacy fields are accepted but never widen the label-based target boundary.
+    deployments: list[str] = Field(default_factory=list)
+    ownership_labels: dict[str, str] = Field(default_factory=dict)
+    managed_label: dict[str, str] = Field(default_factory=lambda: {"liveprobe.io/managed": "true"})
     replicas_min: int = Field(default=1, ge=1)
     replicas_max: int = Field(default=2, ge=1)
     memory_limit_min_mi: int = Field(default=256, ge=16)
@@ -151,6 +152,8 @@ class SafeActionPolicy(BaseModel):
 
     @model_validator(mode="after")
     def _bounds(self) -> "SafeActionPolicy":
+        if not self.managed_label or any(not k.strip() or not v.strip() for k, v in self.managed_label.items()):
+            raise ValueError("managed_label must contain non-empty key/value selectors")
         if self.replicas_min > self.replicas_max or self.memory_limit_min_mi > self.memory_limit_max_mi:
             raise ValueError("safe_actions lower bound exceeds upper bound")
         return self
@@ -226,6 +229,7 @@ class AssistConfig(BaseModel):
     interpreter: RoleModel = Field(default_factory=lambda: RoleModel(model=GPT_LOW, effort="low"))
     steering: RoleModel = Field(default_factory=lambda: RoleModel(model=GPT_LOW, effort="low"))
     operator_planner: RoleModel = Field(default_factory=lambda: RoleModel(model=GPT_MID, effort="medium"))
+    code_fixer: RoleModel = Field(default_factory=lambda: RoleModel(model=GPT_MID, effort="high"))
     interpret_enabled: bool = True
     interpret_max_items: int = Field(default=40, ge=1, le=200)
     interpret_max_chars: int = Field(default=600, ge=80, le=4000)
@@ -233,11 +237,38 @@ class AssistConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
-    target_namespace: str = "liveprobe-target"
+    target_namespaces: list[str] = Field(default_factory=lambda: ["dev", "stg", "prd"], min_length=1)
+    # Read-only compatibility alias. Consumers must use membership, not this first environment.
+    @property
+    def target_namespace(self) -> str:
+        return self.target_namespaces[0]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_namespace(cls, data):
+        if isinstance(data, dict) and "target_namespaces" not in data and data.get("target_namespace"):
+            data = {**data, "target_namespaces": [data["target_namespace"]]}
+        return data
+
+    @model_validator(mode="after")
+    def _unique_namespaces(self):
+        if any(not n or not n.strip() for n in self.target_namespaces) or len(set(self.target_namespaces)) != len(self.target_namespaces):
+            raise ValueError("target_namespaces must be unique non-empty names")
+        return self
+
+    def environment(self, namespace: str | None) -> str | None:
+        return namespace if namespace in self.target_namespaces else None
+
+    app_error_poll_interval_seconds: int = Field(default=15, ge=1)
+    app_error_threshold: int = Field(default=3, ge=1)
+    app_error_window_seconds: int = Field(default=120, ge=1)
     workflows: WorkflowPolicy = Field(default_factory=WorkflowPolicy)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     router: RouterPolicy = Field(default_factory=RouterPolicy)
     assist: AssistConfig = Field(default_factory=AssistConfig)
+    runner_systems: dict[str, list[str]] = Field(default_factory=dict)
+    change_rollout_timeout_seconds: int = Field(default=180, ge=1, le=1800)
+    change_observation_seconds: int = Field(default=60, ge=1, le=600)
     # caller -> list of callees (static dependency map)
     dependencies: dict[str, list[str]] = Field(default_factory=lambda: {"order": ["inventory"]})
     settle_seconds: int = 20
@@ -277,6 +308,8 @@ class Settings(BaseSettings):
     # projected token of the dedicated write identity (safe-action-executor); absent => typed actions fail closed
     executor_token_file: str = "/var/run/secrets/safe-action-executor/token"
     operator_executor_token_file: str = "/var/run/secrets/operator-executor/token"
+    runner_token_file: str = "/var/run/secrets/liveprobe-runner/token"
+    release_token_file: str = "/var/run/secrets/release-executor/token"
     secret_writer_token_file: str = "/var/run/secrets/secret-writer/token"
     prometheus_url: str = "http://prometheus.liveprobe-observability.svc:9090"
     loki_url: str = "http://loki.liveprobe-observability.svc:3100"

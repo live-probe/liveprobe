@@ -1,9 +1,9 @@
 import type { Topology } from './mapModel';
 
-export type Status = 'open' | 'analyzing' | 'action_pending' | 'acting' | 'resolved' | 'handed_off' | 'failed';
+export type Status = 'open' | 'analyzing' | 'action_pending' | 'acting' | 'resolved' | 'handed_off' | 'failed' | 'closed';
 export type Level = 'SIMPLE' | 'NORMAL' | 'COMPLEX' | 'HIGH_RISK';
 export type Citation = { chunk_id: number; doc: string; source: string; chunk_ix: number; score: number; content: string; source_uri?: string | null; locator?: string | null };
-export type Incident = { id: number; title: string; namespace: string; workload: string; status: Status; severity_level: Level | null; signal_count: number; created_at: string; updated_at: string; closed_at: string | null; total_cost_usd: number | null; agent_run_count: number; summary?: string | null; status_reason?: string | null; signal_reasons?: string[]; handoff?: Record<string, unknown> | null; family_hint?: string | null; stage?: Stage | null };
+export type Incident = { id: number; title: string; namespace: string; system?: string | null; environment?: string | null; workload: string; status: Status; severity_level: Level | null; signal_count: number; created_at: string; updated_at: string; closed_at: string | null; total_cost_usd: number | null; agent_run_count: number; summary?: string | null; status_reason?: string | null; signal_reasons?: string[]; handoff?: Record<string, unknown> | null; family_hint?: string | null; stage?: Stage | null };
 
 // ---------------------------------------------------------------- P15 incident war room (GET /incidents/{id}/narrative)
 export type Stage = { key: string; label: string };
@@ -43,17 +43,18 @@ export type Command = {
 
 // ---------------------------------------------------------------- P15 operations overview (GET /overview)
 export type ClusterNode = { name: string; ready: boolean | null; cpu_cores: number | null; cpu_used_cores: number | null; mem_bytes: number | null; mem_used_bytes: number | null; pods: number | null };
+export type EnvironmentStat = { name: string; order: number; workloads: number | null; pods_ready: number | null; pods_total: number | null; open_incidents: number | null; missing?: true };
 export type NamespaceStat = { name: string; pods_running: number | null; pods_pending: number | null; pods_failed: number | null; restarts_1h: number | null; cpu_cores: number | null; mem_bytes: number | null; workloads: number | null; workloads_unhealthy: number | null };
 export type WorkloadIncident = { id: number; level: Level | string | null; status: string; stage: Stage | null };
-export type Workload = { id: string; namespace: string; name: string; kind: string; ready: number | null; desired: number | null; restarts_1h: number | null; cpu: number | null; mem: number | null; req_rate: number | null; err_rate: number | null; p95_ms: number | null; incident: WorkloadIncident | null };
+export type Workload = { id: string; namespace: string; system?: string | null; environment?: string | null; name: string; kind: string; ready: number | null; desired: number | null; restarts_1h: number | null; cpu: number | null; mem: number | null; req_rate: number | null; err_rate: number | null; p95_ms: number | null; incident: WorkloadIncident | null };
 export type ClusterEvent = { at: string | null; namespace: string | null; object: string; reason: string; type: string; message: string; count: number | null };
-export type OpenIncident = { id: number; title: string; namespace: string; workload: string; severity_level: Level | string | null; status: string; stage: Stage | null; created_at: string };
+export type OpenIncident = { id: number; title: string; namespace: string; system?: string | null; environment?: string | null; workload: string; severity_level: Level | string | null; status: string; stage: Stage | null; created_at: string };
 export type Overview = {
   generated_at: string | null;
-  cluster: { nodes: ClusterNode[]; namespaces: NamespaceStat[] };
+  cluster: { nodes: ClusterNode[]; namespaces: NamespaceStat[]; environments?: EnvironmentStat[] };
   workloads: Workload[];
   events: ClusterEvent[];
-  incidents: { open: OpenIncident[]; today: { total: number | null; resolved: number | null; handed_off: number | null; failed: number | null } };
+  incidents: { open: OpenIncident[]; today: { total: number | null; resolved: number | null; handed_off: number | null; failed: number | null; closed?: number | null } };
   topology: Topology | null;
   sources: Record<string, string>;
 };

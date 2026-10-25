@@ -5,16 +5,19 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from .models import Incident, WorkflowRun
+from .models import INCIDENT_CLOSED_STATES, Incident, WorkflowRun
 
 TRANSITIONS = {
     "open": {"analyzing", "failed"},
     "analyzing": {"action_pending", "acting", "resolved", "handed_off", "failed"},
-    "action_pending": {"acting", "handed_off", "failed"},
+    # An operator may close an approval nobody will act on (e.g. an action that already finished elsewhere).
+    "action_pending": {"acting", "handed_off", "failed", "closed"},
     "acting": {"resolved", "handed_off", "failed"},
     "resolved": set(),
-    "handed_off": set(),
+    # The AI stopped and a person owns it; only that person's explicit close ends it.
+    "handed_off": {"closed"},
     "failed": set(),
+    "closed": set(),
 }
 
 
@@ -22,7 +25,7 @@ def transition(inc: Incident, status: str) -> None:
     if status not in TRANSITIONS.get(inc.status, set()):
         raise ValueError(f"invalid incident transition {inc.status} -> {status}")
     inc.status = status
-    if not TRANSITIONS[status]:
+    if status in INCIDENT_CLOSED_STATES:
         inc.closed_at = datetime.now(timezone.utc)
 
 

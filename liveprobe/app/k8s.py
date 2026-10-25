@@ -29,13 +29,15 @@ class Kube:
         return self.api_client.sanitize_for_serialization(obj)
 
     def executor(self, token_file: str, ca_file: str = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
-                 namespace: str = "liveprobe-target"):
+                 namespace: str | None = None, cfg=None):
         """Write client for the dedicated safe-action-executor identity, or None when its token is not mounted.
 
         The API's own service account stays read-only (and is denied writes by admission); only this projected,
         separately-bound token can patch the two target Deployments / delete controller-owned target Pods."""
         import os
         from .actions import SafeActionKube
+        from .config import get_app_config
+        app_cfg = cfg or get_app_config()
         if not os.path.isfile(token_file):
             return None
         cfg = self.client.Configuration()
@@ -48,7 +50,7 @@ class Kube:
             pass
         api = self.client.ApiClient(cfg)
         return SafeActionKube(self, self.client.CoreV1Api(api), self.client.AppsV1Api(api), self.client.ApiException,
-                              namespace=namespace)
+                              namespace=namespace or app_cfg.target_namespaces[0], cfg=app_cfg)
 
     # --- reads -------------------------------------------------------------
     def list_pods(self, ns: str, selector: dict[str, str] | None = None) -> list[dict]:
@@ -147,12 +149,12 @@ class Kube:
                                "containerStatuses": [{"ready": c.get("ready")} for c in st.get("containerStatuses") or []]}}
         def svc_view(s: dict) -> dict:
             md, sp = s.get("metadata") or {}, s.get("spec") or {}
-            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name")},
+            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name"), "labels": md.get("labels") or {}},
                     "spec": {"clusterIP": sp.get("clusterIP"), "selector": sp.get("selector") or {},
                              "ports": [{"port": x.get("port")} for x in sp.get("ports") or []]}}
         def ep_view(e: dict) -> dict:
             md = e.get("metadata") or {}
-            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name")},
+            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name"), "labels": md.get("labels") or {}},
                     "subsets": [{"addresses": [{"ip": a.get("ip")} for a in s.get("addresses") or []]} for s in e.get("subsets") or []]}
         def ing_view(i: dict) -> dict:
             md, sp = i.get("metadata") or {}, i.get("spec") or {}
@@ -165,11 +167,11 @@ class Kube:
             dflt = ((sp.get("default_backend") or sp.get("defaultBackend") or {}).get("service") or {})
             if dflt.get("name"):
                 rules.append({"host": None, "path": "/", "service": dflt["name"], "port": (dflt.get("port") or {}).get("number")})
-            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name")},
+            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name"), "labels": md.get("labels") or {}},
                     "spec": {"ingressClassName": sp.get("ingress_class_name") or sp.get("ingressClassName"), "rules": rules}}
         def dep_view(d: dict) -> dict:
             md, sp, st = d.get("metadata") or {}, d.get("spec") or {}, d.get("status") or {}
-            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name")},
+            return {"metadata": {"namespace": md.get("namespace"), "name": md.get("name"), "labels": md.get("labels") or {}},
                     "spec": {"replicas": sp.get("replicas")},
                     "status": {"readyReplicas": st.get("readyReplicas", 0)}}
         errors: list[str] = []
@@ -201,12 +203,14 @@ class Kube:
         import os
         from pathlib import Path
         import httpx
-        if ns != "liveprobe-target" or name not in ("inventory", "order"):
+        from .config import get_app_config
+        cfg = get_app_config()
+        if ns not in cfg.target_namespaces:
             raise ValueError("rollback target not allowlisted")
         url = os.environ.get("ROLLBACK_CONTROLLER_URL")
         if url != "https://rollback-controller.liveprobe-system.svc:443/undo":
             raise RuntimeError("rollback controller is not configured")
-        if grant is None or grant.get("name") != name:
+        if grant is None or grant.get("name") != name or grant.get("namespace") != ns:
             raise RuntimeError("approved action grant required")
         try:
             token = Path("/var/run/secrets/rollback-caller/token").read_text().strip()

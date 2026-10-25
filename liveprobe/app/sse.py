@@ -2,7 +2,7 @@
 
 Contract (KAN-34-api-contract.md): SSE event name `incident`, data
 `{"incident_id": int, "status": str, "event": str}`,
-event in created | updated | agent_run | action | resolved | handed_off | failed.
+event in created | updated | agent_run | action | resolved | handed_off | failed | closed.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .models import IncidentEvent, Incident
 from . import db
 from sqlalchemy import delete, select
 
-EVENTS = ("created", "updated", "agent_run", "action", "resolved", "handed_off", "failed")
+EVENTS = ("created", "updated", "agent_run", "action", "resolved", "handed_off", "failed", "closed")
 
 
 class Broker:

@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from ..config import AppConfig, Settings
+from ..remediation import Remediation, REMEDIATION_SCHEMA
 from .base import LLMError, LLMResult, Provider, Usage  # noqa: F401
 from .anthropic_api import AnthropicAPIProvider
 from .claude_cli import ClaudeCLIProvider
@@ -36,6 +37,7 @@ class AgentOutput(BaseModel):
     next_action: str  # rollout_undo | act | handoff | none
     recommended_steps: list[str] = Field(default_factory=list)
     action: ActionOut | None = None   # always present in model output (null = no action)
+    remediation: Remediation | None = None
 
 
 class RouterOutput(BaseModel):
@@ -47,6 +49,7 @@ class RouterOutput(BaseModel):
 AGENT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
+        "remediation": REMEDIATION_SCHEMA,
         "summary": {"type": "string"},
         "root_cause_candidates": {
             "type": "array",

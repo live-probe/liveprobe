@@ -10,6 +10,7 @@ from typing import Any, Callable
 from .config import AppConfig
 from .evidence import Bundle
 from .k8s import parse_ts
+from .remediation import remediation_hint  # public deterministic fallback
 
 LEVEL_ORDER = {"SIMPLE": 0, "NORMAL": 1, "COMPLEX": 2, "HIGH_RISK": 3}
 WORKFLOW = {"SIMPLE": "simple_group", "NORMAL": "normal_group", "COMPLEX": "complex_group", "HIGH_RISK": "high_risk_group"}

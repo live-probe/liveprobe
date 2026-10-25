@@ -64,6 +64,17 @@ def parse_json_object(text: str) -> dict[str, Any]:
     return obj
 
 
+def validation_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Accept older conclusions without remediation; the engine labels its fallback as rules.
+
+    Generation still requests the full strict contract. A supplied remediation must validate.
+    """
+    result = strict_schema(schema)
+    if "remediation" in result.get("properties", {}):
+        result["required"] = [k for k in result["required"] if k != "remediation"]
+    return result
+
+
 def strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     """OpenAI structured outputs require additionalProperties=false and all props required."""
     s = json.loads(json.dumps(schema))

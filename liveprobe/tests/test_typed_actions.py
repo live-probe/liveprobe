@@ -18,7 +18,7 @@ from app.safety import execute as safety_execute
 from conftest import FakeKube, mk_pod, needs_db
 
 NS = "liveprobe-target"
-OWN = {"app.kubernetes.io/part-of": "liveprobe-target"}
+OWN = {"app.kubernetes.io/part-of": "liveprobe-target", "liveprobe.io/managed": "true"}
 ROOT = Path(__file__).resolve().parents[2]
 V1 = "inventory-config-v1"
 V1_DATA = {"INVENTORY_DB_POOL_MAX": "value-approved-five", "SERVER_PORT": "value-port-eighty"}
@@ -27,7 +27,7 @@ VALUE_MARK = "value-"
 
 
 def cfg(**kw) -> AppConfig:
-    c = AppConfig(allowlist=["rollout_undo", *TYPED])
+    c = AppConfig(target_namespace="liveprobe-target", allowlist=["rollout_undo", *TYPED])
     c.safe_actions.configmap_versions = {"inventory-config": [ApprovedConfigVersion(name=V1, sha256=data_hash(V1_DATA))]}
     for k, v in kw.items():
         setattr(c, k, v)
@@ -204,7 +204,7 @@ NEGATIVE = [
     ("scale_replicas", "liveprobe-system", "Deployment", "inventory", {"replicas": 2}, "target namespace"),
     ("scale_replicas", "kube-system", "Deployment", "coredns", {"replicas": 2}, "target namespace"),
     ("scale_replicas", NS, "StatefulSet", "inventory", {"replicas": 2}, "only supports kind"),
-    ("rollout_restart", NS, "Deployment", "loadgen", {}, "not an allowlisted"),
+    ("rollout_restart", NS, "Deployment", "loadgen", {}, "does not exist"),
     ("rollout_restart", NS, "Deployment", "Inventory;rm", {}, "DNS-1123"),
     ("scale_replicas", NS, "Deployment", "inventory", {"replicas": 0}, "outside approved bounds"),
     ("scale_replicas", NS, "Deployment", "inventory", {"replicas": 50}, "outside approved bounds"),
@@ -233,7 +233,7 @@ def test_negative_matrix_denied(action_type, ns, kind, name, params, match):
 
 def test_not_allowlisted_and_wrong_api_group_denied():
     with pytest.raises(Denied, match="allowlist"):
-        validate(AppConfig(), ExecKube(), "configmap_restore", NS, "ConfigMap", "inventory-config", {"version": "v1"})
+        validate(AppConfig(target_namespace="liveprobe-target", ), ExecKube(), "configmap_restore", NS, "ConfigMap", "inventory-config", {"version": "v1"})
     with pytest.raises(Denied, match="API group"):
         validate(cfg(), ExecKube(), "rollout_restart", NS, "Deployment", "inventory", {}, "extensions")
 
@@ -296,7 +296,7 @@ def test_configmap_version_integrity(mutate, match):
 
 def test_configmap_restore_without_history_denied_by_default():
     with pytest.raises(Denied, match="no approved immutable version history"):
-        validate(AppConfig(allowlist=list(TYPED)), ExecKube(), "configmap_restore", NS, "ConfigMap",
+        validate(AppConfig(target_namespace="liveprobe-target", allowlist=list(TYPED)), ExecKube(), "configmap_restore", NS, "ConfigMap",
                  "inventory-config", {"version": V1})
 
 
@@ -311,7 +311,7 @@ def test_policy_only_tightens():
 
 # ------------------------------------------------------------------ DB-backed execution
 def mk_incident(s, level="SIMPLE", workload="inventory"):
-    i = Incident(fingerprint="f", namespace=NS, workload=workload, severity_level=level, title="t",
+    i = Incident(fingerprint="f", namespace=NS, workload=workload, system="liveprobe-target", severity_level=level, title="t",
                  status="open", signal_reasons=[])
     s.add(i)
     s.flush()

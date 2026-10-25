@@ -1,0 +1,76 @@
+/* P16 · 다이어그램만 흑연색 작업면으로 분리한다. */
+.topology-canvas,.flow-canvas{
+  --diagram-bg:#0c1420;--diagram-group:#111d2d;--diagram-node:#19283b;
+  --diagram-selected:#213452;--diagram-border:#34465f;--diagram-text:#edf3fc;
+  --diagram-muted:#b7c6d9;--diagram-meta:#a0b2ca;--diagram-accent:#a9baff;
+  --diagram-ok:#85dfb5;--diagram-warn:#ffd08a;--diagram-danger:#ff9da7;--diagram-reroute:#d0b1ff;
+  background:var(--diagram-bg);color:var(--diagram-text);isolation:isolate;
+}
+.topology-canvas .react-flow,.flow-canvas .react-flow{background:var(--diagram-bg)}
+.topology-canvas .react-flow__pane,.flow-canvas .react-flow__pane{cursor:grab}
+.topology-canvas .react-flow__pane:active,.flow-canvas .react-flow__pane:active{cursor:grabbing}
+.topology-canvas :focus-visible,.flow-canvas :focus-visible{outline:3px solid var(--diagram-accent);outline-offset:3px}
+.map-toolbar h2{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.map-toolbar h2 svg{width:18px;height:18px;color:var(--accent)}
+.map-toolbar .select{flex-basis:200px;min-width:140px}
+.topology-canvas .namespace-box{border:1px solid #2a3c53;background:#111d2db3;border-radius:14px;padding:8px 16px}
+.namespace-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;height:24px;min-width:0}
+.namespace-title{display:flex;align-items:center;gap:8px;min-width:0;color:var(--diagram-muted)}
+.namespace-title svg{width:14px;height:14px;flex:none;color:var(--diagram-meta)}
+.namespace-title b{font:600 12px/1.5 var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.namespace-stats{font:12px/1.5 var(--font);color:var(--diagram-meta);flex:none}
+.namespace-stats em{color:var(--diagram-warn);font-style:normal}
+.topology-canvas .resource-button{padding:9px 10px;border:1px solid var(--diagram-border);border-radius:10px;background:var(--diagram-node);color:var(--diagram-text);box-shadow:0 3px 8px #00000024;transition:border-color 140ms ease,background 140ms ease}
+.topology-canvas .resource-button:hover{border-color:#879dbb;background:#1e3047}
+.topology-canvas .resource-button.selected{border-color:var(--diagram-accent);background:var(--diagram-selected);box-shadow:0 0 0 3px #a9baff30}
+.topology-canvas .resource-button.has-incident{border:1px solid var(--diagram-danger);background:#302332;box-shadow:inset 3px 0 var(--diagram-danger),0 3px 8px #00000024}
+.topology-canvas .resource-button.has-warning{border-color:var(--diagram-warn);box-shadow:inset 3px 0 var(--diagram-warn)}
+.topology-canvas .resource-top{gap:8px;align-items:center}
+.topology-canvas .resource-top strong{font-size:14px;line-height:18px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topology-canvas .resource-top small{display:block;font:11px/15px var(--mono);color:var(--diagram-meta)}
+.topology-canvas .resource-glyph{display:grid;place-items:center;width:28px;height:28px;flex:none;border:1px solid #3e5573;border-radius:7px;color:var(--diagram-accent);background:#263853}
+.topology-canvas .resource-glyph.data{color:var(--diagram-reroute);background:#302d49;border-color:#524866}
+.topology-canvas .resource-glyph svg{width:18px;height:18px}
+.topology-canvas .health-dot{width:6px;height:6px;background:var(--diagram-meta);box-shadow:0 0 0 3px #a0b2ca14}
+.topology-canvas .health-dot.ready{background:var(--diagram-ok);box-shadow:0 0 0 3px #85dfb51a}
+.topology-canvas .health-dot.unhealthy{background:var(--diagram-danger);box-shadow:0 0 0 3px #ff9da71a}
+.topology-canvas .resource-health{font-size:12px;line-height:17px;color:var(--diagram-muted);margin:5px 0 4px}
+.topology-canvas .observation-warning{font-size:11px;color:var(--diagram-warn);margin-left:4px}
+.topology-canvas .resource-metrics{font-size:12px;line-height:16px;gap:0 6px;letter-spacing:-.25px;color:var(--diagram-meta)}
+.topology-canvas .resource-metrics b{font-weight:500;color:var(--diagram-text);font-variant-numeric:tabular-nums}
+.topology-canvas .resource-memory{grid-column:1/-1}
+.topology-canvas .resource-observation{border-top:1px solid var(--diagram-border);padding-top:8px;margin-top:8px;font-size:12px;line-height:18px;color:var(--diagram-muted)}
+.topology-canvas .incident-pin{position:absolute;top:-11px;right:8px;display:flex;align-items:center;gap:4px;border:1px solid #ff9da780;border-radius:5px;background:#743340;color:#fff0f2;padding:1px 6px;font-size:11px;line-height:17px;box-shadow:0 0 0 3px var(--diagram-bg);animation:none}
+.topology-canvas .incident-pin i{display:inline;font-size:11px;line-height:1;font-weight:700;font-style:normal;color:#fff0f2;background:transparent;width:auto;height:auto}
+.topology-canvas .legend-line{border-color:#8ea5c4}
+.topology-canvas .legend-line.dashed{border-color:#a0b2ca}
+.topology-canvas .dot.danger{background:var(--diagram-danger)}
+.topology-canvas .graph-toolbar,.flow-canvas .graph-toolbar{padding:8px 12px;background:#111d2d;border-top:1px solid #2a3c53;gap:6px;color:var(--diagram-text)}
+.topology-canvas .graph-toolbar button,.flow-canvas .graph-toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;border:1px solid #415772;border-radius:6px;background:#19283b;color:var(--diagram-text);font-size:12px;padding:4px 9px;line-height:20px}
+.graph-toolbar button svg{width:14px;height:14px;flex:none}
+.topology-canvas .graph-toolbar button:hover,.flow-canvas .graph-toolbar button:hover{background:#213452;border-color:var(--diagram-accent)}
+.topology-canvas .graph-toolbar button:active,.flow-canvas .graph-toolbar button:active{background:#2b4060}
+.topology-canvas .graph-legend,.flow-canvas .graph-legend{color:var(--diagram-muted);font-size:12px;line-height:18px;gap:4px 12px}
+.topology-canvas .map-connection-count{color:var(--diagram-meta)}
+.flow-canvas .warn-text{color:var(--diagram-warn)}
+.flow-canvas .reroute-text{color:var(--diagram-reroute)}
+.flow-canvas .accent-text{color:var(--diagram-accent)}
+.flow-canvas .ok-text{color:var(--diagram-ok)}
+@media(max-width:768px){
+  .topology-canvas .graph-toolbar,.flow-canvas .graph-toolbar{padding:8px;gap:5px}
+  .topology-canvas .graph-legend,.flow-canvas .graph-legend{flex:1 1 100%;margin-left:0;padding-left:0;font-size:12px;gap:3px 10px}
+}
+.environment-summary{display:flex;flex-wrap:wrap;gap:6px;padding:3px 14px;border-bottom:1px solid var(--line);background:#fff;flex:none}
+.environment-chip{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text-2);min-width:0;word-break:keep-all;overflow-wrap:anywhere}
+.environment-chip.active{border-color:#b6caeb;background:var(--accent-weak);color:var(--accent)}
+.environment-chip b{font-family:var(--mono)}
+.environment-filter-note{font-size:12px;color:var(--text-2);margin:-6px 0 14px;word-break:keep-all;overflow-wrap:anywhere}
+.headline-place{font-size:12px;color:var(--text-2);word-break:keep-all;overflow-wrap:anywhere}
+.topology-canvas .namespace-box{background:#111d2d}
+.system-box .namespace-title{color:var(--diagram-text)}
+.system-box .namespace-title b{font:600 12px/1.5 var(--font)}
+.topology-canvas .resource-place{color:var(--diagram-danger);font-size:11px;letter-spacing:-.35px;white-space:nowrap}
+@media(min-width:1101px){.ops-map:has(.environment-summary) .map-toolbar{padding-top:3px;padding-bottom:3px}}
+@media(min-width:1101px) and (max-width:1350px){.ops:has(.environment-summary){grid-template-columns:minmax(0,1fr) 272px}}
+@media(max-width:768px){.environment-summary{padding:6px 10px}.environment-chip{flex:1 1 100%}.ops-map:has(.environment-summary){height:86dvh;min-height:610px}}
+@media(prefers-reduced-motion:reduce){.topology-canvas .resource-button{transition:none}}

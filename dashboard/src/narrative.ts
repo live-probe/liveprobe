@@ -8,7 +8,7 @@ export const FLOW_STATUS_KO: Record<string, string> = { planned: '예정', runni
 export const FLOW_STATUS_SHORT: Record<string, string> = { planned: '예정', running: '실행 중', done: '완료', failed: '실패', skipped: '건너뜀', escalated: '승격됨' };
 export const FLOW_TYPE_KO: Record<string, string> = { signal: '신호', evidence: '근거', router: '분류', group: '그룹', agent: '에이전트', verify: '검증', action: '조치', outcome: '결과', steer: '운영자 지시', command: '지시 실행', interpret: '한글 해석' };
 export const EDGE_KIND_KO: Record<string, string> = { flow: '진행', escalate: '상위 모델 승격', reroute: '경로 변경', steer: '지시 반영', verify: '검증' };
-export const STAGE_KO: Record<string, string> = { routing: '사건 수준 판단 중', collecting: '근거 수집 중', analyzing: '에이전트 분석 중', verifying: '결과 확인 중', acting: '조치 실행 중', approval: '운영자 승인 대기', resolved: '자동 복구 완료', handed_off: '운영자 인계', failed: '처리 실패' };
+export const STAGE_KO: Record<string, string> = { routing: '사건 수준 판단 중', collecting: '근거 수집 중', analyzing: '에이전트 분석 중', verifying: '결과 확인 중', acting: '조치 실행 중', approval: '운영자 승인 대기', resolved: '자동 복구 완료', handed_off: '운영자 인계', failed: '처리 실패', closed: '운영자 종료' };
 export const flowStatusKo = (v: string) => FLOW_STATUS_KO[v] ?? '상태 미확인';
 export const stageKo = (key: string, label?: string | null) => label || STAGE_KO[key] || '단계 미확인';
 
@@ -110,8 +110,13 @@ export function validFlowEdges(nodes: FlowNode[], edges: FlowEdge[]): FlowEdge[]
   const ids = new Set(nodes.map(n => n.id));
   return edges.filter(e => ids.has(e.source) && ids.has(e.target));
 }
-export const narrativePollMs = (status: string) => ['resolved', 'handed_off', 'failed'].includes(status) ? 10000 : 2000;
-export const isFinished = (status: string) => ['resolved', 'handed_off', 'failed'].includes(status);
+const FINISHED = ['resolved', 'handed_off', 'failed', 'closed'];
+export const narrativePollMs = (status: string) => FINISHED.includes(status) ? 10000 : 2000;
+export const isFinished = (status: string) => FINISHED.includes(status);
+/** 운영자가 종료한 장애는 기록만 남고 더 이상 지시를 받지 않는다(서버도 409로 거부). */
+export const acceptsInstructions = (status: string) => status !== 'closed';
+/** 종료할 수 있는 상태: AI가 멈춘 인계, 또는 아무도 처리하지 않을 승인 대기. */
+export const closable = (status: string) => status === 'handed_off' || status === 'action_pending';
 /** Missing collection arrays are empty, not a crash and never a fabricated healthy result. */
 export function normalizeNarrative(data: Narrative): Narrative {
   return { ...data, raw: data.raw ?? [], flow: { nodes: data.flow?.nodes ?? [], edges: data.flow?.edges ?? [] } };

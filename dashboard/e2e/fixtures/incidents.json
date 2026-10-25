@@ -3,8 +3,8 @@
     {
       "id": 1976,
       "title": "TargetConnectionPoolExhausted on App/order [eval N3-02/adaptive_noguide]",
-      "namespace": "liveprobe-target",
-      "workload": "order",
+      "namespace": "prd",
+      "workload": "inventory",
       "status": "analyzing",
       "severity_level": "NORMAL",
       "signal_count": 1,
@@ -16,7 +16,9 @@
       "stage": {
         "key": "analyzing",
         "label": "쿠버네티스 분석 중"
-      }
+      },
+      "system": "order",
+      "environment": "prd"
     },
     {
       "id": 976,

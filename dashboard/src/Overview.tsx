@@ -18,7 +18,7 @@ function Stats({ o }: { o: Overview }) {
     <div><dt>Pod 실행 · 대기 · 실패</dt><dd><b>{numberKo(k.running)}</b> · <span className="warn-text">{numberKo(k.pending)}</span> · <span className="danger-text">{numberKo(k.failed)}</span></dd></div>
     <div><dt>재시작 · 최근 1시간</dt><dd><b>{numberKo(k.restarts)}</b>회</dd></div>
     <div><dt>진행 중 장애</dt><dd><b>{open.length}</b>건{open.length > 0 && <small> ({Object.entries(k.levels).filter(([, c]) => c > 0).map(([l, c]) => `${levelKo(l)} ${c}`).join(' · ')})</small>}</dd></div>
-    <div><dt>오늘 처리</dt><dd>자동 복구 <b className="ok-text">{numberKo(today?.resolved)}</b> · 인계 {numberKo(today?.handed_off)} · 실패 {numberKo(today?.failed)} <small>/ 감지 {numberKo(today?.total)}</small></dd></div>
+    <div><dt>오늘 처리</dt><dd>자동 복구 <b className="ok-text">{numberKo(today?.resolved)}</b> · 인계 {numberKo(today?.handed_off)} · 실패 {numberKo(today?.failed)}{today?.closed ? <> · 운영자 종료 {numberKo(today.closed)}</> : null} <small>/ 감지 {numberKo(today?.total)}</small></dd></div>
   </dl></section>;
 }
 function Events({ o }: { o: Overview }) {

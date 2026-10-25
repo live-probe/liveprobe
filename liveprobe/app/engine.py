@@ -17,7 +17,7 @@ from .db import audit
 from .evidence import Bundle, collect, compact_summary
 from .incidents import Signal, ingest
 from .llm import AGENT_SCHEMA, ROUTER_SCHEMA, AgentOutput, LLMError, RouterOutput, estimate_cost
-from .models import Action, AgentRun, Citation, Evidence, Incident, RoutingDecision, WorkflowRun
+from .models import INCIDENT_CLOSED_STATES, Action, AgentRun, Citation, Evidence, Incident, RoutingDecision, WorkflowRun
 from .lifecycle import transition, update_run
 from .rag import RAG
 from .agent_groups import (GROUP_SCHEMA, EvidenceStore, GroupController, GroupMessage, StopGroup, check_citations,
@@ -54,7 +54,7 @@ class Engine:
         if evaluation_lock_active():     # evaluation campaign owns the fault namespace; signals are its own
             return
         with db.session() as s:
-            inc, outcome = ingest(s, self.cfg, sig)
+            inc, outcome = ingest(s, self.cfg, sig, kube=self.kube)
             iid = inc.id if inc else None
         if outcome == "created" and iid:
             broker.publish(iid, "created", "open")
@@ -136,7 +136,7 @@ class Engine:
                 log.exception("incident %s processing crashed", iid)
                 with db.session() as s:
                     inc = s.get(Incident, iid)
-                    if inc and inc.status not in ("resolved", "handed_off", "failed"):
+                    if inc and inc.status not in INCIDENT_CLOSED_STATES:
                         transition(inc, "failed")
                         inc.status_reason = redact(f"internal error: {type(e).__name__}: {e}")[:500]
                         update_run(s, iid, "failed", "error", inc.status_reason)
@@ -154,6 +154,8 @@ class Engine:
                 raise ValueError("incident not found")
             transition(inc, status)
             for k, v in fields.items():
+                if k == "handoff" and isinstance(v, dict) and (inc.handoff or {}).get("remediation"):
+                    v = {**v, "remediation": inc.handoff["remediation"]}
                 setattr(inc, k, v)
             update_run(s, iid, "failed" if status == "failed" else "succeeded" if status in ("resolved", "handed_off") else "running", status, fields.get("status_reason"))
             audit(s, "liveprobe", "incident_status", iid, status=status, reason=fields.get("status_reason"))
@@ -175,6 +177,8 @@ class Engine:
             with db.session() as s:
                 runner.cfg, runner.model_snapshot = snapshot_config(s, self.cfg)
         runner._process(iid, arm=arm)
+        from .changes import auto_create_for_incident
+        if arm is None: auto_create_for_incident(runner, iid)
 
     def _process(self, iid: int, *, arm: dict | None = None) -> None:
         """Run one incident. `arm` is set only by the evaluation harness (liveprobe/app/evalrun.py):
@@ -188,7 +192,8 @@ class Engine:
             update_run(s, iid, "running", "analysis")
             ns, workload, created = inc.namespace, inc.workload, inc.created_at
             incident_view = {"id": inc.id, "namespace": ns, "workload": workload, "title": inc.title,
-                             "signals": inc.signal_reasons, "created_at": inc.created_at.isoformat()}
+                             "signals": inc.signal_reasons, "created_at": inc.created_at.isoformat(),
+                             "system": inc.system, "environment": self.cfg.environment(ns)}
             audit(s, "liveprobe", "analysis_started", iid)
         broker.publish(iid, "updated", "analyzing")
 
@@ -203,6 +208,7 @@ class Engine:
             "sources": sorted({it.source for it in bundle.items}),
             "errors": [{"source": it.source, "error": str(it.error)[:160]} for it in bundle.items if it.error][:5]})
 
+        self._save_remediation(iid, bundle)
         # routing ------------------------------------------------------------
         strategy = arm.get("strategy", "adaptive")
         # Collection/LLM calls take time: incorporate signals merged since analysis began.
@@ -292,6 +298,7 @@ class Engine:
 
         final = out.get("verifier") or out.get("safety") or out.get("analyst") or out.get("curator") or {}
         summary = (final or {}).get("summary")
+        self._save_remediation(iid, bundle, final, verified=bool(out.get("verifier") or out.get("safety")))
 
         # KAN-53: every cited evidence/runbook ref must resolve to a source that was actually shown.
         # (SIMPLE/HIGH_RISK keep the MVP-0 message without verbatim quotes, so only ref resolution applies.)
@@ -338,6 +345,15 @@ class Engine:
         self._set_status(iid, "handed_off", status_reason="action was not executable; operator handoff",
                          handoff={"summary": summary, "notes": ["action was not executable; see audit"]})
 
+    def _save_remediation(self, iid: int, bundle: Bundle, output=None, *, verified=False):
+        from .remediation import select_remediation
+        remediation = select_remediation(bundle, output, verified=verified)
+        with db.session() as s:
+            inc = s.get(Incident, iid)
+            inc.handoff = {**(inc.handoff or {}), "remediation": remediation}
+            audit(s, "workflow", "remediation_decided", iid, **remediation)
+        return remediation
+
     def _kube_for(self, aid: int):
         """rollout_undo goes through the rollback controller (observe client + signed grant); only the five typed
         actions use the separate write identity. Mixing them up fails (the executor client has no request_rollback)."""
@@ -351,7 +367,7 @@ class Engine:
         """Wire the dedicated write identity. Without it typed actions are denied (fail closed). Shared by the API
         startup and the evaluation runner so both exercise the same execution path."""
         try:
-            self.exec_kube = self.kube.executor(token_file)
+            self.exec_kube = self.kube.executor(token_file, cfg=self.cfg)
         except Exception as e:  # noqa: BLE001 - never block startup
             log.warning("safe-action executor unavailable: %s", type(e).__name__)
             self.exec_kube = None
@@ -460,6 +476,7 @@ class Engine:
             res = {"status": "stopped", "reason": f"{e.kind}: {e.detail}", "root_cause_candidates": [],
                    "recommended_steps": [], "notes": [f"{decision.level}: workflow could not start"],
                    "budget": ctl.budget()}
+        self._save_remediation(iid, bundle, res, verified=res.get("status") == "verified")
         handoff = {"summary": res.get("summary"), "root_cause_candidates": res.get("root_cause_candidates", [])[:3],
                    "recommended_steps": res.get("recommended_steps", []), "notes": res.get("notes", []),
                    "group": res.get("group"), "workflow_status": res.get("status"),

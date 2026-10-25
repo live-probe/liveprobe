@@ -102,12 +102,15 @@ def _event(e: dict) -> dict:
 
 
 def assemble(inventory: dict, values: dict, *, events: list | None = None, incidents: list | None = None,
-             today: dict | None = None, errors: dict | None = None, store: FlowStore | None = None) -> dict:
+             today: dict | None = None, errors: dict | None = None, store: FlowStore | None = None, cfg=None) -> dict:
     """Assemble one response. `inventory` has no Secret values; raw Warning messages are preserved verbatim."""
-    incidents, errors = incidents or [], errors or {}
+    from .config import AppConfig
+    cfg = cfg or AppConfig()
+    incidents = [{**i, "system": i.get("system"), "environment": cfg.environment(i.get("namespace"))} for i in incidents or []]
+    errors = errors or {}
     store = store or FlowStore()
     freshness = store.freshness()
-    topo = build_topology(inventory, store.snapshot(), freshness, incidents)
+    topo = build_topology(inventory, store.snapshot(), freshness, incidents, cfg=cfg)
     tnodes = {n["id"]: n for n in topo["nodes"]}
     # Inventory also includes deployments with no pods (scaled to zero or still waiting for scheduling).
     for d in inventory.get("deployments", []):
@@ -147,8 +150,9 @@ def assemble(inventory: dict, values: dict, *, events: list | None = None, incid
                   "restarts_1h": _sum_seen(indexes["pod_restarts"].get(p) for p in podmap[wid]),
                   **{k: apps[k].get(pair) for k in apps}}
         w = {"id": wid, "namespace": n.get("namespace"), "name": n["name"], "kind": n["kind"],
+             "system": n.get("system"), "environment": cfg.environment(n.get("namespace")),
              "ready": n.get("ready"), "desired": n.get("desired", n.get("pods")), **metric,
-             "incident": {"id": inc["id"], "level": inc.get("severity_level"), "status": inc["status"], "stage": inc.get("stage")} if inc else None}
+             "incident": {"id": inc["id"], "level": inc.get("severity_level"), "status": inc["status"], "stage": inc.get("stage"), "system": inc.get("system"), "environment": cfg.environment(inc.get("namespace"))} if inc else None}
         workloads.append(w)
         n.update(metric)
         if inc and not n.get("warnings"):
@@ -196,7 +200,16 @@ def assemble(inventory: dict, values: dict, *, events: list | None = None, incid
                "kubernetes": "error: " + "; ".join(kube_errors) if kube_errors else "ok",
                "hubble": freshness.get("stream_state") or freshness.get("state") or "never_connected",
                "envoy": "ok" if er else "미관측"}
-    return {"generated_at": datetime.now(timezone.utc).isoformat(), "cluster": {"nodes": nodes, "namespaces": ns_rows},
+    environments = []
+    for order, ns in enumerate(cfg.target_namespaces, 1):
+        missing = ns not in all_ns
+        ps = pods_by_ns[ns]
+        environments.append({"name": ns, "order": order, "missing": missing,
+            "workloads": None if missing else sum(w["namespace"] == ns for w in workloads),
+            "pods_ready": None if missing else sum((p.get("status") or {}).get("phase") == "Running" and bool((p.get("status") or {}).get("containerStatuses")) and all(c.get("ready") for c in p["status"]["containerStatuses"]) for p in ps),
+            "pods_total": None if missing else len(ps),
+            "open_incidents": sum(i.get("namespace") == ns for i in incidents)})
+    return {"generated_at": datetime.now(timezone.utc).isoformat(), "cluster": {"nodes": nodes, "namespaces": ns_rows, "environments": environments},
             "workloads": workloads, "events": sorted((_event(e) for e in events or []), key=lambda e: e["at"] or "", reverse=True)[:80],
             "incidents": {"open": incidents, "today": today or {"total": 0, "resolved": 0, "handed_off": 0, "failed": 0}},
             "topology": topo, "sources": sources}

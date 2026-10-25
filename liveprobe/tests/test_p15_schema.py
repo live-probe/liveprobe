@@ -10,7 +10,7 @@ from conftest import ROOT, needs_db
 def test_0008_adds_p15_tables_and_is_reversible(db_url):
     from app import db
     with db.engine().connect() as c:
-        assert c.execute(text("select version_num from alembic_version")).scalar_one() == "0008"
+        assert c.execute(text("select version_num from alembic_version")).scalar_one() == __import__("alembic.script", fromlist=["ScriptDirectory"]).ScriptDirectory(str(ROOT / "alembic")).get_current_head()
     insp = inspect(db.engine())
     assert {"interpretations", "operator_commands"} <= set(insp.get_table_names())
     cols = {c["name"] for c in insp.get_columns("operator_commands")}
@@ -30,7 +30,7 @@ def test_0008_adds_p15_tables_and_is_reversible(db_url):
     assert "intent" not in {c["name"] for c in insp.get_columns("operator_messages")}
     db.run_migrations(db_url)
     with db.engine().connect() as c:
-        assert c.execute(text("select version_num from alembic_version")).scalar_one() == "0008"
+        assert c.execute(text("select version_num from alembic_version")).scalar_one() == __import__("alembic.script", fromlist=["ScriptDirectory"]).ScriptDirectory(str(ROOT / "alembic")).get_current_head()
 
 
 @needs_db

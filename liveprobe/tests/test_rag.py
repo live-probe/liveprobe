@@ -104,7 +104,7 @@ def test_migration_upgrade_downgrade_preserves_legacy_citation(db_url):
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     cfg.attributes["sqlalchemy_url"] = db_url
     with db.session() as s:
-        assert s.execute(text("select version_num from alembic_version")).scalar_one() == "0008"
+        assert s.execute(text("select version_num from alembic_version")).scalar_one() == __import__("alembic.script", fromlist=["ScriptDirectory"]).ScriptDirectory(str(ROOT / "alembic")).get_current_head()
         inc = Incident(fingerprint="x", namespace="liveprobe-target", workload="inventory", status="resolved",
                        title="x", closed_at=datetime.now(timezone.utc))
         s.add(inc); s.flush()

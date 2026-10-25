@@ -2,7 +2,7 @@
 // No React here so the rules (what is drawn, how, and when it is called a warning) are unit-tested.
 
 export type TopoNode = {
-  id: string; kind: string; name: string; namespace: string | null;
+  id: string; kind: string; name: string; namespace: string | null; system?: string | null; environment?: string | null;
   status: 'ready' | 'degraded' | 'down' | 'completed' | 'unknown' | 'observed_only' | string;
   pods?: number; ready?: number; completed?: number; node?: string | null;
   cluster_ip?: string | null; ports?: number[]; endpoints_ready?: number;

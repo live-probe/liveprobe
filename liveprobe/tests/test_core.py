@@ -86,7 +86,7 @@ def test_high_risk_graph_always_handoff():
 
 def test_owner_resolution_and_watcher_dedup_signals():
     k = family1_kube()
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     signals = []
     w = Watchers(k, cfg, signals.append)
     assert deployment_for_pod(k, cfg.target_namespace, k.pods[1]) == "inventory"
@@ -104,7 +104,7 @@ def test_owner_resolution_and_watcher_dedup_signals():
 
 
 def test_safety_rules_and_revision_selection():
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     k = family1_kube()
     assert effective_policy("HIGH_RISK", "auto") == "handoff"
     assert effective_policy("SIMPLE", "approval") == "approval"
@@ -121,7 +121,7 @@ def test_safety_rules_and_revision_selection():
 
 @needs_db
 def test_merge_window_and_cooldown(db_url):
-    cfg = AppConfig()
+    cfg = AppConfig(target_namespace="liveprobe-target", )
     now = datetime.now(timezone.utc)
     sig = Signal(cfg.target_namespace, "Deployment", "inventory", "ImagePullBackOff", "pod_watch")
     mapped = Signal(cfg.target_namespace, "App", "order", "High5xx", "alertmanager")

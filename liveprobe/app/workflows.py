@@ -8,6 +8,7 @@ from typing import Any, Callable, TypedDict
 from langgraph.graph import END, StateGraph
 
 from .proposals import ACTION_RULES, precheck, resolve, same
+from .remediation import REMEDIATION_RULES, remediation_errors
 
 
 @dataclass
@@ -60,11 +61,14 @@ def _rag_block(hits: list[dict]) -> str:
 
 
 def _ctx(state: WFState) -> str:
+    evidence = dict(state['evidence'])
+    if "E8_code_refs" in evidence:
+        evidence = {"E8_code_refs": evidence.pop("E8_code_refs"), **evidence}
     return (
         f"Incident: {json.dumps(state['incident'], default=str)}\n"
         f"Router features: {json.dumps(state['features'], default=str)}\n"
         f"Evidence (refer to ids like E1_deployment, E2_pods, ...; runbooks as R1..R3):\n"
-        f"{json.dumps(state['evidence'], default=str)[:9000]}\n\n"
+        f"{json.dumps(evidence, default=str)[:9000]}\n\n"
         f"Runbook knowledge (RAG):\n{_rag_block(state.get('rag') or [])}\n"
         f"{state.get('bounds') or ''}\n"
     )
@@ -73,7 +77,7 @@ def _ctx(state: WFState) -> str:
 OUTPUT_RULES = (
     "Output fields: summary; root_cause_candidates (max 3, each with cause, confidence 0..1, evidence_refs "
     "citing evidence ids and runbook ids); counter_evidence; confidence 0..1; next_action; action (when acting); "
-    "recommended_steps (manual steps for an operator).\n" + ACTION_RULES
+    "recommended_steps (manual steps for an operator).\n" + ACTION_RULES + "\n" + REMEDIATION_RULES
 )
 
 
@@ -99,6 +103,9 @@ def build_simple_graph(run_agent: RunAgent):
 
     def decide(state: WFState) -> WFState:
         a, v = state.get("analyst") or {}, state.get("verifier") or {}
+        errors = remediation_errors(a.get("remediation"), state["evidence"]) + remediation_errors(v.get("remediation"), state["evidence"])
+        if errors:
+            return {"outcome": "handoff", "reason": "; ".join(errors), "handoff": _handoff(v or a, errors)}
         thr = state.get("min_confidence", 0.6)
         workload = (state.get("incident") or {}).get("workload")
         pa, pv = resolve(a, workload), resolve(v, workload)
@@ -141,6 +148,7 @@ def _features(state: WFState) -> dict:
 def _handoff(out: dict, extra: list[str] | None = None) -> dict:
     return {
         "summary": (out or {}).get("summary"),
+        "remediation": (out or {}).get("remediation"),
         "root_cause_candidates": ((out or {}).get("root_cause_candidates") or [])[:3],
         "recommended_steps": (out or {}).get("recommended_steps") or [],
         "notes": extra or [],
@@ -162,6 +170,9 @@ class _Single:
         if not r.ok:
             return {"analyst": None, "outcome": "handoff", "reason": f"signal_analyst failed: {r.error}"}
         a, thr = r.output or {}, state.get("min_confidence", 0.6)
+        errors = remediation_errors(a.get("remediation"), state["evidence"])
+        if errors:
+            return {"analyst": a, "outcome": "handoff", "reason": "; ".join(errors), "handoff": _handoff(a, errors)}
         conf = a.get("confidence", 0)
         workload = (state.get("incident") or {}).get("workload")
         pa = resolve(a, workload)

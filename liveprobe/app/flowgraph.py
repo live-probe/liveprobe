@@ -11,7 +11,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from .models import (Action, AgentRun, Evidence, Incident, Interpretation, OperatorCommand, OperatorMessage, RoutingDecision,
+from .models import (INCIDENT_CLOSED_STATES, Action, AgentRun, Evidence, Incident, Interpretation, OperatorCommand, OperatorMessage, RoutingDecision,
                      RunEvent)
 from .roles_ko import GROUP_KO, role_info
 
@@ -126,7 +126,7 @@ def build_flow(s, iid: int) -> dict[str, Any]:
     n_evidence = s.scalar(select(Evidence.id).where(Evidence.incident_id == iid).limit(1)) is not None
     ko = {r.item_key: r.ko for r in s.scalars(select(Interpretation).where(Interpretation.incident_id == iid))
           if r.item_key.startswith("agent:")}
-    finished = inc.status in ("resolved", "handed_off", "failed")
+    finished = inc.status in INCIDENT_CLOSED_STATES
     g = _G()
 
     g.node("signal", "signal", f"감지 신호: {signal_ko(inc.signal_reasons)}", 0, status="done")
@@ -261,9 +261,9 @@ def build_flow(s, iid: int) -> dict[str, Any]:
             g.edge(t, n["id"])
         prev_tail = [n["id"]]
         depth += 1
-    label = {"resolved": "자동 복구 완료", "handed_off": "운영자 인계", "failed": "처리 실패"}.get(inc.status, "결과 대기")
+    label = {"resolved": "자동 복구 완료", "handed_off": "운영자 인계", "failed": "처리 실패", "closed": "운영자 종료"}.get(inc.status, "결과 대기")
     g.node("outcome", "outcome", label, depth, lane=0,
-           status="done" if inc.status in ("resolved", "handed_off") else "failed" if inc.status == "failed" else "planned",
+           status="done" if inc.status in ("resolved", "handed_off", "closed") else "failed" if inc.status == "failed" else "planned",
            conclusion_raw=inc.status_reason)
     for t in prev_tail:
         g.edge(t, "outcome")

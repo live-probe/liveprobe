@@ -93,7 +93,7 @@ def test_missing_observability_source_is_recorded_not_dropped(monkeypatch, setti
     monkeypatch.setattr(E.httpx, "get", fake_http(prom_ok=prom_ok, loki_ok=loki_ok))
     b = collect(family1_kube(), AppConfig(), settings, NS, "inventory")
     errored = {i.source for i in b.items if i.error}
-    assert errored == missing
+    assert errored == (missing | ({"code_refs"} if not loki_ok else set()))
     for it in b.items:
         assert it.target and it.collected_at
     assert all(any(e.startswith(m + ":") for e in compact_summary(b)["collection_errors"]) for m in missing)

@@ -8,7 +8,8 @@ const groups = {
   COMPLEX: { primary_mode: 'router', roles: { k8s_log_analyst: role(), cause_reasoner: role('gpt-6-astra', 'high'), challenger: role('gpt-6-astra', 'high'), recovery_planner: role(), group_verifier: role() } },
   HIGH_RISK: { primary_mode: 'router', roles: { evidence_curator: role(), safety_verifier: role('gpt-6-astra', 'xhigh') } },
 };
-const initial = { revision: 0, source: 'config', provider: 'codex_cli', editable: true, router: role('gpt-6-luna', 'low'), groups, defaults: { router: role('gpt-6-luna', 'low'), groups }, catalog: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].map(model => ({ model, efforts: ['low', 'medium', 'high', 'xhigh'] })), limits: { model_ladder: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'], max_cost_usd: { NORMAL: 1.3, COMPLEX: 2.3 } } };
+const assist = { code_fixer: role('gpt-6.1-sol', 'high') };
+const initial = { assist, revision: 0, source: 'config', provider: 'codex_cli', editable: true, router: role('gpt-6-luna', 'low'), groups, defaults: { assist, router: role('gpt-6-luna', 'low'), groups }, catalog: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].map(model => ({ model, efforts: ['low', 'medium', 'high', 'xhigh'] })), limits: { model_ladder: ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'], max_cost_usd: { NORMAL: 1.3, COMPLEX: 2.3 } } };
 
 test('group settings preserve draft across groups and save explicit payload', async ({ page }) => {
   let state = structuredClone(initial); let writes = [];
@@ -51,7 +52,7 @@ test('role rows keep workflow order even when database JSON keys are sorted', as
   await page.route('**/api/model-settings', route => route.fulfill({ json: response }));
   await page.goto('/settings');
   await page.getByRole('button', { name: '복잡 그룹', exact: true }).click();
-  await expect(page.locator('.model-role b')).toHaveText(['사건 분류', '쿠버네티스·로그 분석', '원인 추론', '반론 검토', '복구 계획', '독립 결과 확인']);
+  await expect(page.locator('.model-role b')).toHaveText(['사건 분류', '코드 수정', '쿠버네티스·로그 분석', '원인 추론', '반론 검토', '복구 계획', '독립 결과 확인']);
 });
 
 test('stale save preserves the draft and does not show success', async ({ page }) => {

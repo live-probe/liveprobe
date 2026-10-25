@@ -40,6 +40,7 @@ class ModelSettingsIn(BaseModel):
     expected_revision: int = Field(ge=0, strict=True)
     router: Placement
     groups: dict[str, GroupPlacement]
+    assist: dict[str, Placement] | None = None
 
     @model_validator(mode='after')
     def complete(self):
@@ -48,6 +49,8 @@ class ModelSettingsIn(BaseModel):
         for level, roles in GROUP_ROLES.items():
             if set(self.groups[level].roles) != set(roles):
                 raise ValueError(f'{level} 역할 구성이 올바르지 않습니다.')
+        if self.assist is not None and set(self.assist) != {'code_fixer'}:
+            raise ValueError('코드 수정 역할을 지정해야 합니다.')
         return self
 
 
@@ -59,7 +62,7 @@ def defaults(cfg: AppConfig) -> dict:
     def role(name):
         rm = cfg.llm.roles.get(name) or cfg.workflows.group_roles['openai'][name]
         return rm.model_dump()
-    return {'router': role('router'), 'groups': {
+    return {'assist': {'code_fixer': cfg.assist.code_fixer.model_dump()}, 'router': role('router'), 'groups': {
         level: {'primary_mode': 'router', 'roles': {name: role(name) for name in roles}}
         for level, roles in GROUP_ROLES.items()}}
 
@@ -71,7 +74,7 @@ def read_settings(s, cfg: AppConfig) -> dict:
     return {'revision': value['revision'], 'source': 'database' if row else 'config',
             'provider': cfg.llm.provider, 'editable': cfg.llm.provider == 'codex_cli',
             'updated_at': row.updated_at.isoformat() if row and row.updated_at else None,
-            'router': value['router'], 'groups': value['groups'], 'defaults': base,
+            'router': value['router'], 'groups': value['groups'], 'assist': value.get('assist', base['assist']), 'defaults': base,
             'catalog': [{'model': name, 'efforts': EFFORTS, 'price': cfg.llm.prices.get(name)} for name in MODELS],
             'prices_version': cfg.llm.prices_version,
             'limits': {'max_cost_usd': cfg.workflows.max_cost_usd, 'max_agent_calls': cfg.workflows.max_agent_calls,
@@ -83,7 +86,7 @@ def validate_settings(cfg: AppConfig, body: ModelSettingsIn) -> None:
         raise ValueError('이 화면은 Codex CLI 전용입니다. 호출 공급자는 변경할 수 없습니다.')
     # Validate the common classifier too, not only group roles.
     import math
-    placements = [body.router, *(rm for group in body.groups.values() for rm in group.roles.values())]
+    placements = [body.router, *(rm for group in body.groups.values() for rm in group.roles.values()), *(body.assist or {}).values()]
     for rm in placements:
         price = cfg.llm.prices.get(rm.model) or {}
         if (not {'input', 'output'} <= set(price)
@@ -114,7 +117,8 @@ def save_settings(s, cfg: AppConfig, body: ModelSettingsIn, actor: str) -> dict:
     if current['revision'] != body.expected_revision:
         raise RevisionConflict('다른 창에서 설정을 변경했습니다. 다시 불러온 뒤 저장하세요.')
     value = {'revision': current['revision'] + 1, 'router': body.router.model_dump(),
-             'groups': {k: v.model_dump() for k, v in body.groups.items()}}
+             'groups': {k: v.model_dump() for k, v in body.groups.items()},
+             'assist': {k: v.model_dump() for k, v in body.assist.items()} if body.assist is not None else current['assist']}
     row = s.get(Setting, KEY)
     if row:
         row.value = value

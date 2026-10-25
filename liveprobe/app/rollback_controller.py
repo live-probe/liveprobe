@@ -28,8 +28,42 @@ class Rejected(Exception):
     pass
 
 
+def namespaces(env=None):
+    env = env if env is not None else os.environ
+    result = {n.strip() for n in env.get("ROLLBACK_NAMESPACES", "liveprobe-target").split(",") if n.strip()}
+    if not result or any(not re.fullmatch(r"[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?", n) for n in result):
+        raise Rejected("invalid rollback namespaces")
+    return result
+
+
+def approved_for(approved, namespace, name):
+    if namespace not in namespaces():
+        raise Rejected("namespace not allowlisted")
+    value = approved.get(f"{namespace}/{name}")
+    if value is None and namespace == "liveprobe-target":
+        value = approved.get(name)
+    if not value:
+        raise Rejected("target not allowlisted")
+    return [value] if isinstance(value, str) else value
+
+
 def trusted_images(env=None):
     env = env if env is not None else os.environ
+    if "ROLLBACK_APPROVED_IMAGES" in env:
+        try:
+            images = json.loads(env["ROLLBACK_APPROVED_IMAGES"])
+            allowed = namespaces(env)
+            if not isinstance(images, dict) or not images:
+                raise ValueError()
+            for key, values in images.items():
+                ns, name = key.split("/")
+                if ns not in allowed or not re.fullmatch(r"[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?", name):
+                    raise ValueError()
+                if not isinstance(values, list) or not values or any(not isinstance(v, str) or not DIGEST.fullmatch(v) for v in values):
+                    raise ValueError()
+            return images
+        except (ValueError, TypeError, AttributeError):
+            raise Rejected("invalid namespace-bound approved rollback images") from None
     images = {name: env.get("ROLLBACK_" + name.upper() + "_IMAGE", "") for name in TARGETS}
     if any(not DIGEST.fullmatch(image) for image in images.values()):
         raise Rejected("operator must configure digest-pinned rollback images for both targets")
@@ -70,9 +104,10 @@ def _only_image_changed(before, after, name, approved_image):
 
 def plan_undo(deployment, replicasets, name, approved_image):
     """Return CAS patch only if an owned, older RS records the exact safe template."""
-    if name not in TARGETS or deployment["metadata"]["name"] != name:
+    if deployment["metadata"]["name"] != name:
         raise Rejected("target is not allowlisted")
-    if not DIGEST.fullmatch(approved_image):
+    approved_images = [approved_image] if isinstance(approved_image, str) else approved_image
+    if not isinstance(approved_images, list) or not approved_images or any(not isinstance(v, str) or not DIGEST.fullmatch(v) for v in approved_images):
         raise Rejected("rollback image must be digest-pinned")
     uid = deployment["metadata"].get("uid")
     resource_version = deployment["metadata"].get("resourceVersion")
@@ -90,11 +125,14 @@ def plan_undo(deployment, replicasets, name, approved_image):
         previous = _template(rs)
         if previous == current:
             continue
-        _only_image_changed(current, previous, name, approved_image)
+        image = _image(previous, name)
+        if image not in approved_images:
+            continue
+        _only_image_changed(current, previous, name, image)
         return [
             {"op": "test", "path": "/metadata/resourceVersion", "value": resource_version},
             {"op": "test", "path": "/spec/template/spec/containers/0/image", "value": _image(current, name)},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": approved_image},
+            {"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": image},
         ], _revision(rs), rs["metadata"]["name"]
     raise Rejected("no owned previous revision with the exact approved image and unchanged template")
 
@@ -106,21 +144,23 @@ def validate_admission(review, approved):
     try:
         if (req.get("userInfo") or {}).get("username") != CONTROLLER_USER:
             raise Rejected("not the rollback controller")
-        if req.get("namespace") != NAMESPACE or req.get("operation") != "UPDATE":
+        if req.get("namespace") not in namespaces() or req.get("operation") != "UPDATE":
             raise Rejected("wrong namespace or operation")
         resource = req.get("resource") or {}
         if resource.get("group") != "apps" or resource.get("resource") != "deployments":
             raise Rejected("not a Deployment update")
         name = req.get("name")
-        if name not in TARGETS:
-            raise Rejected("target not allowlisted")
+        images = approved_for(approved, req.get("namespace"), name)
         old, new = req["oldObject"], req["object"]
         if old["metadata"]["uid"] != new["metadata"]["uid"] or old["metadata"]["name"] != name:
             raise Rejected("Deployment identity changed")
         if old["spec"].get("selector") != new["spec"].get("selector"):
             raise Rejected("selector changed")
         spec_old, spec_new = copy.deepcopy(old["spec"]), copy.deepcopy(new["spec"])
-        _only_image_changed(_template(old), _template(new), name, approved[name])
+        image = _image(_template(new), name)
+        if image not in images:
+            raise Rejected("image not approved for namespace and workload")
+        _only_image_changed(_template(old), _template(new), name, image)
         spec_new["template"]["spec"]["containers"][0]["image"] = spec_old["template"]["spec"]["containers"][0]["image"]
         if spec_old != spec_new:
             raise Rejected("non-image Deployment spec changed")
@@ -150,17 +190,16 @@ def authenticate(auth, header):
         raise Rejected("rollback caller not authorized")
 
 
-def undo_json(apps, api_client, name, approved, expected_revision, expected_source):
-    if name not in TARGETS:
-        raise Rejected("target not allowlisted")
-    dep = api_client.sanitize_for_serialization(apps.read_namespaced_deployment(name, NAMESPACE))
+def undo_json(apps, api_client, name, approved, expected_revision, expected_source, namespace="liveprobe-target"):
+    images = approved_for(approved, namespace, name)
+    dep = api_client.sanitize_for_serialization(apps.read_namespaced_deployment(name, namespace))
     replicasets = [api_client.sanitize_for_serialization(rs) for rs in
-                   apps.list_namespaced_replica_set(NAMESPACE).items]
-    ops, revision, rs_name = plan_undo(dep, replicasets, name, approved[name])
+                   apps.list_namespaced_replica_set(namespace).items]
+    ops, revision, rs_name = plan_undo(dep, replicasets, name, images)
     if _revision(dep) != expected_revision or rs_name != expected_source:
         raise Rejected("approved revision provenance changed")
-    apps.patch_namespaced_deployment(name, NAMESPACE, ops)
-    return {"to_revision": revision, "to_replicaset": rs_name, "to_images": [approved[name]],
+    apps.patch_namespaced_deployment(name, namespace, ops)
+    return {"to_revision": revision, "to_replicaset": rs_name, "to_images": [ops[-1]["value"]],
             "before": {"revision": _revision(dep), "images": [_image(_template(dep), name)]}}
 
 
@@ -189,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
                 authenticate(self.auth, self.headers.get("Authorization"))
                 rollback_grant.verify(self.grant_key, body)
                 result = undo_json(self.apps, self.api_client, body["name"], self.approved,
-                                   body["expected_revision"], body["expected_source"])
+                                   body["expected_revision"], body["expected_source"], namespace=body["namespace"])
                 status = 200
             else:
                 raise Rejected("unknown route")
