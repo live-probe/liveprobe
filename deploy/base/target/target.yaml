@@ -1,0 +1,232 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inventory-config
+  namespace: liveprobe-target
+  labels:
+    app: inventory
+    app.kubernetes.io/part-of: liveprobe-target
+data:
+  INVENTORY_DB_URL: jdbc:postgresql://postgres.liveprobe-system.svc:5432/inventory
+  INVENTORY_DB_USER: inventory
+  # Hikari pool bounded well below the role's CONNECTION LIMIT 12 and server max_connections.
+  INVENTORY_DB_POOL_MAX: "5"
+  INVENTORY_DB_CONNECTION_TIMEOUT_MS: "1000"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-config
+  namespace: liveprobe-target
+  labels:
+    app: order
+    app.kubernetes.io/part-of: liveprobe-target
+data:
+  INVENTORY_URL: http://inventory.liveprobe-target.svc:8080
+  # 2 attempts x (0.5s connect + 1.8s read) + 0.1s backoff = 4.7s < loadgen --max-time 5.
+  INVENTORY_CONNECT_TIMEOUT_MS: "500"
+  INVENTORY_TIMEOUT_MS: "1800"
+  INVENTORY_MAX_RETRIES: "1"
+  INVENTORY_RETRY_BACKOFF_MS: "100"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory
+  namespace: liveprobe-target
+  labels:
+    app: inventory
+    app.kubernetes.io/part-of: liveprobe-target
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: inventory
+  template:
+    metadata:
+      labels:
+        app: inventory
+        app.kubernetes.io/part-of: liveprobe-target
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /actuator/prometheus
+        # Istio metrics merging would rewrite these to :15020, which the target NetworkPolicy does not allow; keep app
+        # metrics on :8080 (the main Prometheus envoy-stats job scrapes the sidecar's :15090 by port name).
+        prometheus.istio.io/merge-metrics: "false"
+    spec:
+      containers:
+        - name: inventory
+          image: liveprobe/inventory:dev
+          imagePullPolicy: IfNotPresent
+          # KAN-47: dedicated inventory DB identity (never LiveProbe's). Password from Secret
+          # liveprobe-target/inventory-db (scripts/create-secrets.sh), role/db by provision-inventory-db.sh.
+          envFrom:
+            - configMapRef:
+                name: inventory-config
+          env:
+            - name: INVENTORY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-db
+                  key: password
+          ports:
+            - containerPort: 8080
+              name: http
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory
+  namespace: liveprobe-target
+  labels:
+    app: inventory
+    app.kubernetes.io/part-of: liveprobe-target
+spec:
+  selector:
+    app: inventory
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  namespace: liveprobe-target
+  labels:
+    app: order
+    app.kubernetes.io/part-of: liveprobe-target
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: order
+  template:
+    metadata:
+      labels:
+        app: order
+        app.kubernetes.io/part-of: liveprobe-target
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /actuator/prometheus
+        # Istio metrics merging would rewrite these to :15020, which the target NetworkPolicy does not allow; keep app
+        # metrics on :8080 (the main Prometheus envoy-stats job scrapes the sidecar's :15090 by port name).
+        prometheus.istio.io/merge-metrics: "false"
+    spec:
+      containers:
+        - name: order
+          image: liveprobe/order:dev
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: order-config
+          ports:
+            - containerPort: 8080
+              name: http
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order
+  namespace: liveprobe-target
+  labels:
+    app: order
+    app.kubernetes.io/part-of: liveprobe-target
+spec:
+  selector:
+    app: order
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: liveprobe-target
+  labels:
+    app: loadgen
+    app.kubernetes.io/part-of: liveprobe-target
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgen
+  template:
+    metadata:
+      labels:
+        app: loadgen
+        app.kubernetes.io/part-of: liveprobe-target
+    spec:
+      containers:
+        - name: loadgen
+          image: curlimages/curl:8.22.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              i=0
+              while true; do
+                for item in a b widget gadget; do
+                  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://order.liveprobe-target.svc:8080/api/orders/check?item=$item")
+                  i=$((i+1))
+                  if [ "$code" != "200" ] || [ $((i % 30)) -eq 0 ]; then echo "loadgen item=$item status=$code n=$i"; fi
+                  sleep 2
+                done
+              done
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              memory: 16Mi
